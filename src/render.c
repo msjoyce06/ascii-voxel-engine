@@ -8,9 +8,22 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+typedef struct {
+    int idxs[4];
+    vector_t norm;
+    char c;
+} face_t;
+
 static char *buff;
 static float *zbuff;
 static int bufflen;
+
+static face_t faces[8] = { { .idxs = {0, 1, 3, 2}, .norm = {0, 0, -1}, .c = '$' },
+                           { .idxs = {0, 1, 5, 4}, .norm = {0, -1, 0}, .c = '/' },
+                           { .idxs = {0, 2, 6, 4}, .norm = {-1, 0, 0}, .c = '?' },
+                           { .idxs = {1, 3, 7, 5}, .norm = {1,  0, 0}, .c = '#' },
+                           { .idxs = {2, 3, 7, 6}, .norm = {0,  1, 0}, .c = '@' },
+                           { .idxs = {4, 5, 7, 6}, .norm = {0,  0, 1}, .c = '+' } };
 
 /** Printing */
 void hide_cursor(void) {
@@ -119,15 +132,61 @@ void render_poly(coord_t s0, coord_t s1, coord_t s2, char c) {
     }
 }
 
-void render_face(vector_t v0, vector_t v1, vector_t v2, vector_t v3, vector_t cam_pos,
-                 float cost, float cosp, float sint, float sinp, char c) {
+void render_face(camera_t *cam, vector_t rel, face_t face) {
     return;
 }
 
-void render_chunk(const chunk_t *chunk, vector_t cam_pos, float cost, float cosp,
-                                                          float sint, float sinp) {
-    return;
+void render_block(camera_t *cam, vector_t world) {
+    vector_t rel = v_sub(world, cam->pos);
+    vector_t vtxs[8];
+    for (int i = 0; i < 8; i++) {
+        vtxs[i].x = (i & 1) - 0.5f + rel.x;
+        vtxs[i].y = ((i >> 1) & 1) - 1.0f + rel.y;
+        vtxs[i].z = ((i >> 2) & 1) - 0.5f + rel.z ;
+    }
+    // face_t faces[6];
+    // faces[0] = (face_t){ .idxs = {0, 1, 3, 2}, .norm = {0, 0, -1}, .c = '$' };
+    // faces[1] = (face_t){ .idxs = {0, 1, 5, 4}, .norm = {0, -1, 0}, .c = '/' };
+    // faces[2] = (face_t){ .idxs = {0, 2, 6, 4}, .norm = {-1, 0, 0}, .c = '?' };
+    // faces[3] = (face_t){ .idxs = {1, 3, 7, 5}, .norm = {1,  0, 0}, .c = '#' };
+    // faces[4] = (face_t){ .idxs = {2, 3, 7, 6}, .norm = {0,  1, 0}, .c = '@' };
+    // faces[5] = (face_t){ .idxs = {4, 5, 7, 6}, .norm = {0,  0, 1}, .c = '+' };
+
+    for (int i = 0; i < 6; i++) {
+        render_face(cam, rel, faces[i]);
+    }
 }
+
+void render_chunk(camera_t *cam, const chunk_t *chunk) {
+    vector_t offset = chunk->offset;
+    for (int y = 0; y < CHUNK_Y; y++) {
+        for (int z = 0; z < CHUNK_Z; z++) {
+            for (int x = 0; x < CHUNK_Y; x++) {
+                if (block_present(chunk, x, y, z))
+                    vector_t world = {x + offset.x, y + offset.y, z + offset.z};
+                    render_block(cam, world);
+            }
+        }
+    }
+}
+
+// block_t place_block(vector_t pos) {
+    // block_t block;
+    // for (int i = 0; i < 8; i++) {
+        // block.vtxs[i].x = (i & 1) - 0.5f + pos.x;
+        // block.vtxs[i].y = ((i >> 1) & 1) - 2 + pos.y;
+        // block.vtxs[i].z = ((i >> 2) & 1) - 0.5f + pos.z;
+    // }
+
+    // block.faces[0] = (face_t){ .idxs = {0, 1, 3, 2}, .norm = {0, 0, -1}, .c = '$' };
+    // block.faces[1] = (face_t){ .idxs = {0, 1, 5, 4}, .norm = {0, -1, 0}, .c = '/' };
+    // block.faces[2] = (face_t){ .idxs = {0, 2, 6, 4}, .norm = {-1, 0, 0}, .c = '?' };
+    // block.faces[3] = (face_t){ .idxs = {1, 3, 7, 5}, .norm = {1,  0, 0}, .c = '#' };
+    // block.faces[4] = (face_t){ .idxs = {2, 3, 7, 6}, .norm = {0,  1, 0}, .c = '@' };
+    // block.faces[5] = (face_t){ .idxs = {4, 5, 7, 6}, .norm = {0,  0, 1}, .c = '+' };
+
+    // return block;
+// }
 
 void draw_crosshair(void) {
     coord_t center = {WIDTH/2, HEIGHT/2, INFINITY};

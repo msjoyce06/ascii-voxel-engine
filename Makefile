@@ -6,7 +6,7 @@ SRC = $(wildcard src/*.c)
 OBJ = $(SRC:src/%.c=build/%.o)
 DEP = $(OBJ:.o=.d)
 
-TARGET = build/ascii
+TARGET = build/engine
 
 all: $(TARGET)
 
@@ -25,6 +25,6 @@ run: all
 clean:
 	rm -rf build
 
-.PHONY: all clean
+.PHONY: all run clean
 
 -include $(DEP)

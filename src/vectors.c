@@ -12,7 +12,7 @@ float v_dot(vector_t v1, vector_t v2) {
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
 }
 
-vector_t v_rotate(vector_t v, float cost, float cosp, float sint, float sinp) {
+vector_t v_rotate(vector_t v, float cost, float sint, float cosp, float sinp) {
     vector_t rotated;
 
     rotated.x = v.x*(cost) + v.z*(-sint);

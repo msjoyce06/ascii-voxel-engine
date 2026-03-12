@@ -6,20 +6,22 @@
 
 typedef struct {
     vector_t pos;
-    float theta;
-    float phi;
+    float theta, phi;
+    float cost, sint;
+    float cosp, sinp;
 } camera_t;
 
 extern volatile sig_atomic_t running;
 
-/** signal interrupt */
+/** Signal Interrupt */
 void handle_sigint(int sig);
 
-/** key input */
+/** Key Input */
 void enable_raw_mode(void);
 
 void disable_raw_mode(void);
 
-int read_key(void);
+/** Update */
+void update_cam(camera_t *cam);
 
 #endif

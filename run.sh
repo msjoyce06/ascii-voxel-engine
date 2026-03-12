@@ -4,11 +4,9 @@ WIDTH=$(tput cols)
 HEIGHT=$(tput lines)
 
 args=(-w "$WIDTH" -h "$HEIGHT")
-# compile=true
 
 while getopts "w:h:s:f:" opt; do
     case $opt in
-        # r) compile=false ;;
         w) args=(-w "$OPTARG" "${args[@]:2}") ;;
         h) args=(-w "${args[1]}" -h "$OPTARG") ;;
         s) args+=(-s "$OPTARG") ;;
@@ -17,4 +15,4 @@ while getopts "w:h:s:f:" opt; do
     esac
 done
 
-exec ./build/ascii "${args[@]}"
+exec ./build/engine "${args[@]}"
