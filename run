@@ -1,0 +1,24 @@
+#!/usr/bin/bash
+
+WIDTH=$(tput cols)
+HEIGHT=$(tput lines)
+
+args=(-w "$WIDTH" -h "$HEIGHT")
+compile=true
+
+while getopts "rw:h:s:f:" opt; do
+    case $opt in
+        r) compile=false ;;
+        w) args=(-w "$OPTARG" "${args[@]:2}") ;;
+        h) args=(-w "${args[1]}" -h "$OPTARG") ;;
+        s) args+=(-s "$OPTARG") ;;
+        f) args+=(-f "$OPTARG") ;;
+        *) exit 1 ;;
+    esac
+done
+
+if [compile]; then
+    make
+fi
+
+exec ./build/ascii "${args[@]}"
