@@ -13,9 +13,7 @@ int WIDTH, HEIGHT;
 float FOV;
 int FPS = 60;
 
-static int CHUNK_SIZE = 16*16*16;
-
-static uint8_t chunk[CHUNK_SIZE/8];
+static chunk_t *chunk;
 
 static camera_t cam = { .pos = {0, 1.75f, 0}, .theta = 0, .phi = 0 };
 
@@ -29,13 +27,6 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv);
 
     init_buffs();
-
-    for (int x = 0; x < 16; x++) {
-        for (int z = 0; z < 16; z++) {
-            vector_t pos = {x, 0, z};
-            chunk[x][y][z] = place_block(pos);
-        }
-    }
 
     while (running) {
         set_buffs();

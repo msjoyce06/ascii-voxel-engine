@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Werror -Wall -Wextra -O2 -Iinclude -MMD -MP
+CFLAGS = -Werror -Wall -Wextra -Wno-unused -O2 -Iinclude -MMD -MP
 LDFLAGS = -lm
 
 SRC = $(wildcard src/*.c)
@@ -18,6 +18,9 @@ build/%.o: src/%.c | build
 
 build:
 	mkdir -p build
+
+run: all
+	./run.sh
 
 clean:
 	rm -rf build
