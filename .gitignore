@@ -1,0 +1,8 @@
+# build output
+*.o
+*.out
+ascii
+
+# editor files
+*.swp
+*.swo
