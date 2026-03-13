@@ -24,6 +24,7 @@ static float *zbuff;
 static int bufflen;
 
 const float NEAR = 0.001f;
+const float EDGE_WIDTH = 0.025f;
 
 static vector_t ref_vtxs[8] = {
     {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
@@ -96,24 +97,37 @@ static float edge(coord_t v1, coord_t v2, coord_t p) {
     return (p.x - v1.x) * (v2.y - v1.y) - (p.y - v1.y) * (v2.x - v1.x);
 }
 
+static int should_draw_edge(coord_t s0, coord_t s1, vector_t v0, vector_t v1) {
+    float dx = fabsf(s1.x - s0.x);
+    float dy = fabsf(s1.y - s0.y);
+    float avg_ooz = (s1.ooz + s0.ooz) / 2.0f;
+    float len = sqrtf(dx*dx + dy*dy);
+    float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
+
+    // if (dist > 8.0f && dy < 0.1f*dx)
+    if (avg_ooz < 0.1f && dy < 0.1f*dx)
+        return 0;
+    return 1;
+}
+
 static char get_shade_char(vector_t norm, float dist) {
-    char *ramp = " .^:+e!?jYX0$%#@";
+    char *ramp = " -:+!?ilJ$KX%0#@";
     float base_shade;
 
     if (norm.y == 1.0f)       // top
-        base_shade = 1.0f;
+        base_shade = 1.1f;
     else if (norm.z == -1.0f) // south
         base_shade = 0.8f;
     else if (norm.x == -1.0f) // west
-        base_shade = 0.7f;
+        base_shade = 0.65f;
     else if (norm.z == 1.0f)  // north
-        base_shade = 0.6f;
+        base_shade = 0.55f;
     else if (norm.x == 1.0f)  // east
-        base_shade = 0.5f;
+        base_shade = 0.45f;
     else                      // bottom
-        base_shade = 0.4f;
+        base_shade = 0.25f;
 
-    float near = 1.0f;
+    float near = 0.5f;
     float far = 18.0f;
     float d = 1.0f - (dist - near) / (far - near);
     if (d < 0.0f) d = 0.0f;
@@ -148,7 +162,7 @@ static void buffer_proj(coord_t p, char c) {
     }
 }
 
-static void render_poly(coord_t s0,  coord_t s1,  coord_t s2,
+static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
                         vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
     int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
     int right  = MIN(WIDTH,  (int)ceilf(MAX(s0.x, MAX(s1.x, s2.x))));
@@ -159,6 +173,10 @@ static void render_poly(coord_t s0,  coord_t s1,  coord_t s2,
     const float eps = 1e-6f;
     if (fabsf(area) < eps)
         return;
+
+    int draw_e0 = should_draw_edge(s1, s2, v1, v2) && (ignore_edge != 0);
+    int draw_e1 = should_draw_edge(s2, s0, v2, v0) && (ignore_edge != 2);
+    int draw_e2 = should_draw_edge(s0, s1, v0, v1) && (ignore_edge != 1);
 
     for (int y = top; y < bottom; y++) {
         for (int x = left; x < right; x++) {
@@ -177,14 +195,20 @@ static void render_poly(coord_t s0,  coord_t s1,  coord_t s2,
 
                 p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
 
+                int on_edge = ((draw_e0 && fabsf(a) < EDGE_WIDTH) ||
+                               (draw_e1 && fabsf(b) < EDGE_WIDTH) ||
+                               (draw_e2 && fabsf(c) < EDGE_WIDTH));
+
                 vector_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
                                        a*v0.y + b*v1.y + c*v2.y,
                                        a*v0.z + b*v1.z + c*v2.z };
                 float dist = sqrtf(cam_space.x*cam_space.x +
                                    cam_space.y*cam_space.y +
                                    cam_space.z*cam_space.z );
-
-                buffer_proj(p, get_shade_char(norm, dist));
+                if (on_edge && dist < 15)
+                    buffer_proj(p, get_shade_char(norm, dist+8));
+                else
+                    buffer_proj(p, get_shade_char(norm, dist));
             }
         }
     }
@@ -205,9 +229,9 @@ static void render_face(camera_t *cam, vector_t rel, face_t face) {
             return;
         projected[i] = screen_proj(cam_space[i]);
     }
-    render_poly(projected[0], projected[1], projected[2],
+    render_poly(projected[0], projected[1], projected[2], 2,
                 cam_space[0], cam_space[1], cam_space[2], face.norm);
-    render_poly(projected[0], projected[2], projected[3],
+    render_poly(projected[0], projected[2], projected[3], 1,
                 cam_space[0], cam_space[2], cam_space[3], face.norm);
 }
 
