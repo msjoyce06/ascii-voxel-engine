@@ -1,7 +1,9 @@
 # build output
+build/
 *.o
+*.d
 *.out
-ascii
+engine
 
 # editor files
 *.swp
