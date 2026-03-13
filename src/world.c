@@ -22,11 +22,6 @@ int block_present(const chunk_t *chunk, int x, int y, int z) {
     return (chunk->bits[i/8] >> (7 - (i % 8))) & 1;
 }
 
-// int get_block_from_idx(const chunk_t *chunk, int i) {
-    // if (i < 0 || CHUNK_BLOCKS < i) return -1;
-    // return (chunk->bits[i/8] >> (7 - (i % 8))) & 1;
-// }
-
 void set_block(chunk_t *chunk, int x, int y, int z) {
     int i = block_index(x, y, z);
     if (i == -1) return;
@@ -55,28 +50,11 @@ void load_chunks(chunk_t chunks[], int render_dist) {
                 assert(0 <= chunk_idx && chunk_idx < 8);
 
                 chunk_t new_chunk;
-                new_chunk.offset = {x*CHUNK_X, y*CHUNK_Y, z*CHUNK_Z};
+                new_chunk.offset = (vector_t){x*CHUNK_X, y*CHUNK_Y, z*CHUNK_Z};
                 int bit = (z < 0) ? 1 : 0;
-                chunks[chunk_idx] = init_chunk(&new_chunk, bit);
+                init_chunk(&new_chunk, bit);
+                chunks[chunk_idx] = new_chunk;
             }
         }
     }
 }
-
-// block_t place_block(vector_t pos) {
-    // block_t block;
-    // for (int i = 0; i < 8; i++) {
-        // block.vtxs[i].x = (i & 1) - 0.5f + pos.x;
-        // block.vtxs[i].y = ((i >> 1) & 1) - 2 + pos.y;
-        // block.vtxs[i].z = ((i >> 2) & 1) - 0.5f + pos.z;
-    // }
-
-    // block.faces[0] = (face_t){ .idxs = {0, 1, 3, 2}, .norm = {0, 0, -1}, .c = '$' };
-    // block.faces[1] = (face_t){ .idxs = {0, 1, 5, 4}, .norm = {0, -1, 0}, .c = '/' };
-    // block.faces[2] = (face_t){ .idxs = {0, 2, 6, 4}, .norm = {-1, 0, 0}, .c = '?' };
-    // block.faces[3] = (face_t){ .idxs = {1, 3, 7, 5}, .norm = {1,  0, 0}, .c = '#' };
-    // block.faces[4] = (face_t){ .idxs = {2, 3, 7, 6}, .norm = {0,  1, 0}, .c = '@' };
-    // block.faces[5] = (face_t){ .idxs = {4, 5, 7, 6}, .norm = {0,  0, 1}, .c = '+' };
-
-    // return block;
-// }

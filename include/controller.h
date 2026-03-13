@@ -13,15 +13,14 @@ typedef struct {
 
 extern volatile sig_atomic_t running;
 
-/** Signal Interrupt */
+/** signal interrupt */
 void handle_sigint(int sig);
 
-/** Key Input */
+/** key input */
 void enable_raw_mode(void);
-
 void disable_raw_mode(void);
 
-/** Update */
+/** update */
 void update_cam(camera_t *cam);
 
 #endif

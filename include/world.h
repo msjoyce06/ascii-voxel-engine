@@ -23,8 +23,6 @@ void set_block(chunk_t *chunk, int x, int y, int z);
 
 void clear_block(chunk_t *chunk, int x, int y, int z);
 
-void load_chunks(chunk_t *chunk, int render_dist);
-
-// block_t place_block(vector_t pos);
+void load_chunks(chunk_t *chunks, int render_dist);
 
 #endif

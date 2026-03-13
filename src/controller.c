@@ -5,13 +5,13 @@
 
 static struct termios oldt;
 
-/** Signal Interrupt */
+/** signal interrupt */
 void handle_sigint(int sig) {
     (void)sig;
     running = 0;
 }
 
-/** Key Input */
+/** key input */
 void enable_raw_mode(void) {
     struct termios newt;
 
@@ -36,7 +36,7 @@ static int read_key(void) {
     return -1;
 }
 
-/** Update */
+/** update */
 static void update_trig(camera_t *cam) {
     float theta_r = cam->theta * M_PI / 180;
     float phi_r = cam->phi * M_PI / 180;
@@ -47,10 +47,10 @@ static void update_trig(camera_t *cam) {
     cam->sinp = sinf(phi_r);
 }
 
-static void get_axes(const camera_t *cam, vector_t *x_axis, vector_t *z_axis) {
-    *x_axis = v_rotate(x_axis, cam->cost, 1, -(cam->sint), 0);
-    *z_axis = v_rotate(z_axis, cam->cost, 1, -(cam->sint), 0);
-}
+// static void get_axes(const camera_t *cam, vector_t *x_axis, vector_t *z_axis) {
+    // *x_axis = v_rotate(x_axis, cam->cost, 1, -(cam->sint), 0);
+    // *z_axis = v_rotate(z_axis, cam->cost, 1, -(cam->sint), 0);
+// }
 
 void update_cam(camera_t *cam) {
     int key = read_key();
@@ -72,8 +72,9 @@ void update_cam(camera_t *cam) {
             case 's':
             case 'd': {
                 vector_t x_axis = {0.12f, 0, 0};
+                x_axis = v_rotate(x_axis, cam->cost, 1, -cam->sint, 0);
                 vector_t z_axis = {0, 0, 0.12f};
-                get_axes(cam, &x_axis, &z_axis);
+                z_axis = v_rotate(z_axis, cam->cost, 1, -cam->sint, 0);
                 if (key == 'w') cam->pos = v_add(cam->pos, z_axis);
                 if (key == 'a') cam->pos = v_sub(cam->pos, x_axis);
                 if (key == 's') cam->pos = v_sub(cam->pos, z_axis);
