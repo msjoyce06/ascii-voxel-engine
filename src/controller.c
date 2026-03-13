@@ -71,14 +71,14 @@ void update_cam(camera_t *cam) {
             case 'a':
             case 's':
             case 'd': {
-                vector_t x_axis = {0.12f, 0, 0};
-                x_axis = v_rotate(x_axis, cam->cost, 1, -cam->sint, 0);
-                vector_t z_axis = {0, 0, 0.12f};
-                z_axis = v_rotate(z_axis, cam->cost, 1, -cam->sint, 0);
-                if (key == 'w') cam->pos = v_add(cam->pos, z_axis);
-                if (key == 'a') cam->pos = v_sub(cam->pos, x_axis);
-                if (key == 's') cam->pos = v_sub(cam->pos, z_axis);
-                if (key == 'd') cam->pos = v_add(cam->pos, x_axis);
+                vector_t forward = {0, 0, 0.12f};
+                forward = v_rotate(forward, cam->cost, -cam->sint, 1, 0);
+                vector_t right = {0.12f, 0, 0};
+                right = v_rotate(right, cam->cost, -cam->sint, 1, 0);
+                if (key == 'w') cam->pos = v_add(cam->pos, forward);
+                if (key == 'a') cam->pos = v_sub(cam->pos, right);
+                if (key == 's') cam->pos = v_sub(cam->pos, forward);
+                if (key == 'd') cam->pos = v_add(cam->pos, right);
                 break;
             }
         }

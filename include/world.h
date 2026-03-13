@@ -11,7 +11,7 @@
 #define CHUNK_BYTES ((CHUNK_BLOCKS + 7) / 8)
 
 typedef struct {
-    vector_t offset;
+    vector_t coord;
     uint8_t bits[CHUNK_BYTES];
 } chunk_t;
 

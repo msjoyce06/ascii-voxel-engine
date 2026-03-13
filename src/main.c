@@ -16,7 +16,10 @@ int FPS = 60;
 
 static chunk_t chunks[NUM_CHUNKS];
 
-static camera_t cam = { .pos = {0, 1.75f, 0}, .theta = 0, .phi = 0 };
+static camera_t cam = { .pos = {0, 1.75f, 0},
+                        .theta = 0, .phi = 0,
+                        .cost = 1, .sint = 0,
+                        .cosp = 1, .sinp = 0 };
 
 int main(int argc, char *argv[]) {
     enable_raw_mode();
@@ -29,6 +32,7 @@ int main(int argc, char *argv[]) {
 
     init_buffs();
     load_chunks(chunks, 1);
+    set_block(&chunks[7], 0, 0, 0);
 
     while (running) {
         set_buffs();

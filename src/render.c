@@ -28,7 +28,7 @@ static face_t ref_faces[6] = {
     { .idxs = {0, 1, 2, 3}, .norm = { 0,  0, -1}, .c = '$' }, // z = 0
     { .idxs = {5, 4, 7, 6}, .norm = { 0,  0,  1}, .c = '/' }, // z = 1
     { .idxs = {4, 5, 2, 1}, .norm = { 0, -1,  0}, .c = '+' }, // y = 0
-    { .idxs = {3, 2, 6, 7}, .norm = { 0,  1,  1}, .c = '@' }  // y = 1
+    { .idxs = {3, 2, 6, 7}, .norm = { 0,  1,  0}, .c = '@' }  // y = 1
 };
 
 /** printing */
@@ -66,8 +66,6 @@ void init_buffs(void) {
     if (buff == NULL || zbuff == NULL) {
         free(buff);
         free(zbuff);
-        buff = NULL;
-        zbuff = NULL;
         fprintf(stderr, "Error: malloc failed\n");
         exit(1);
     }
@@ -166,12 +164,14 @@ static void render_block(camera_t *cam, vector_t world) {
 }
 
 static void render_chunk(camera_t *cam, const chunk_t *chunk) {
-    vector_t offset = chunk->offset;
+    vector_t coord = chunk->coord;
     for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (block_present(chunk, x, y, z)) {
-                    vector_t world = {x + offset.x, y + offset.y, z + offset.z};
+                    vector_t world = {x + coord.x*CHUNK_X,
+                                      y + coord.y*CHUNK_Y,
+                                      z + coord.z*CHUNK_Z};
                     render_block(cam, world);
                 }
             }

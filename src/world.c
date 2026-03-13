@@ -4,7 +4,7 @@
 #include <assert.h>
 
 static int block_index(int x, int y, int z) {
-    if (x < 0 || CHUNK_X < x || y < 0 || CHUNK_Y < y || z < 0 || CHUNK_Z < z)
+    if (x < 0 || CHUNK_X <= x || y < 0 || CHUNK_Y <= y || z < 0 || CHUNK_Z <= z)
         return -1;
     return y*CHUNK_Z*CHUNK_X + z*CHUNK_X + x;
 }
@@ -42,16 +42,17 @@ static void init_chunk(chunk_t *chunk, int bit) {
 void load_chunks(chunk_t chunks[], int render_dist) {
     for (int y = -1; y < render_dist; y++) {
         for (int z = -1; z < render_dist; z++) {
-            for (int x = -1; x < render_dist; y++) {
+            for (int x = -1; x < render_dist; x++) {
                 int y_n = y + 1;
                 int z_n = z + 1;
                 int x_n = x + 1;
-                int chunk_idx = y_n*CHUNK_Z*CHUNK_X + z_n*CHUNK_X + x_n;
+                int chunk_idx = y_n*4 + z_n*2 + x_n;
                 assert(0 <= chunk_idx && chunk_idx < 8);
 
                 chunk_t new_chunk;
-                new_chunk.offset = (vector_t){x*CHUNK_X, y*CHUNK_Y, z*CHUNK_Z};
-                int bit = (z < 0) ? 1 : 0;
+                new_chunk.coord = (vector_t){x, y, z};
+                // int bit = (z < 0) ? 1 : 0;
+                int bit = 0;
                 init_chunk(&new_chunk, bit);
                 chunks[chunk_idx] = new_chunk;
             }
