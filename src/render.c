@@ -3,14 +3,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 typedef struct {
+    float x;
+    float y;
+    float ooz;
+} coord_t;
+
+typedef struct {
     int idxs[4];
     vector_t norm;
-    char c;
 } face_t;
 
 static char *buff;
@@ -25,12 +31,12 @@ static vector_t ref_vtxs[8] = {
 };
 
 static face_t ref_faces[6] = {
-    { .idxs = {4, 0, 3, 7}, .norm = {-1,  0,  0}, .c = '?' }, // x = 0
-    { .idxs = {1, 5, 6, 2}, .norm = { 1,  0,  0}, .c = '#' }, // x = 1
-    { .idxs = {0, 1, 2, 3}, .norm = { 0,  0, -1}, .c = '$' }, // z = 0
-    { .idxs = {5, 4, 7, 6}, .norm = { 0,  0,  1}, .c = '/' }, // z = 1
-    { .idxs = {4, 5, 2, 1}, .norm = { 0, -1,  0}, .c = '+' }, // y = 0
-    { .idxs = {3, 2, 6, 7}, .norm = { 0,  1,  0}, .c = '@' }  // y = 1
+    { .idxs = {4, 0, 3, 7}, .norm = {-1,  0,  0} }, // x = 0
+    { .idxs = {1, 5, 6, 2}, .norm = { 1,  0,  0} }, // x = 1
+    { .idxs = {0, 1, 2, 3}, .norm = { 0,  0, -1} }, // z = 0
+    { .idxs = {5, 4, 7, 6}, .norm = { 0,  0,  1} }, // z = 1
+    { .idxs = {4, 5, 2, 1}, .norm = { 0, -1,  0} }, // y = 0
+    { .idxs = {3, 2, 6, 7}, .norm = { 0,  1,  0} }  // y = 1
 };
 
 /** printing */
@@ -90,9 +96,40 @@ static float edge(coord_t v1, coord_t v2, coord_t p) {
     return (p.x - v1.x) * (v2.y - v1.y) - (p.y - v1.y) * (v2.x - v1.x);
 }
 
+static char get_shade_char(vector_t norm, float dist) {
+    char *ramp = " .^:+e!?jYX0$%#@";
+    float base_shade;
+
+    if (norm.y == 1.0f)       // top
+        base_shade = 1.0f;
+    else if (norm.z == -1.0f) // south
+        base_shade = 0.8f;
+    else if (norm.x == -1.0f) // west
+        base_shade = 0.7f;
+    else if (norm.z == 1.0f)  // north
+        base_shade = 0.6f;
+    else if (norm.x == 1.0f)  // east
+        base_shade = 0.5f;
+    else                      // bottom
+        base_shade = 0.4f;
+
+    float near = 1.0f;
+    float far = 18.0f;
+    float d = 1.0f - (dist - near) / (far - near);
+    if (d < 0.0f) d = 0.0f;
+    if (d > 1.0f) d = 1.0f;
+
+    int levels = 16;
+    float brightness = base_shade * d;
+    int idx = (int)(brightness * (levels - 1) + 0.5f);
+    if (idx < 0) idx = 0;
+    if (idx > levels - 1) idx = levels - 1;
+
+    return ramp[idx];
+}
+
 static coord_t screen_proj(vector_t cam_space) {
     float f = HEIGHT / (2.0f * tanf(FOV/2.0f));
-
     float ooz = 1.0f / cam_space.z;
 
     float screen_x = (WIDTH/2.0f + 2.0f * f * cam_space.x * ooz);
@@ -111,7 +148,8 @@ static void buffer_proj(coord_t p, char c) {
     }
 }
 
-static void render_poly(coord_t s0, coord_t s1, coord_t s2, char c) {
+static void render_poly(coord_t s0,  coord_t s1,  coord_t s2,
+                        vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
     int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
     int right  = MIN(WIDTH,  (int)ceilf(MAX(s0.x, MAX(s1.x, s2.x))));
     int top    = MAX(0,      (int)floorf(MIN(s0.y, MIN(s1.y, s2.y))));
@@ -133,31 +171,44 @@ static void render_poly(coord_t s0, coord_t s1, coord_t s2, char c) {
             if ((w0 >= -eps && w1 >= -eps && w2 >= -eps) ||
                 (w0 <= eps && w1 <= eps && w2 <= eps)) {
 
-                p.ooz = (w0/area)*s0.ooz + (w1/area)*s1.ooz + (w2/area)*s2.ooz;
-                buffer_proj(p, c);
+                float a = w0 / area;
+                float b = w1 / area;
+                float c = w2 / area;
+
+                p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
+
+                vector_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
+                                       a*v0.y + b*v1.y + c*v2.y,
+                                       a*v0.z + b*v1.z + c*v2.z };
+                float dist = sqrtf(cam_space.x*cam_space.x +
+                                   cam_space.y*cam_space.y +
+                                   cam_space.z*cam_space.z );
+
+                buffer_proj(p, get_shade_char(norm, dist));
             }
         }
     }
 }
 
 static void render_face(camera_t *cam, vector_t rel, face_t face) {
+    // backface culling
+    vector_t v = v_add(ref_vtxs[face.idxs[0]], rel);
+    if (v_dot(face.norm, v) >= 0)
+        return;
+
+    vector_t cam_space[4];
     coord_t projected[4];
     for (int i = 0; i < 4; i++) {
-        vector_t vtx = ref_vtxs[face.idxs[i]];
-        vtx = v_add(vtx, rel);
-
-        // backface culling
-        vector_t norm = face.norm;
-        if (v_dot(face.norm, vtx) >= 0)
+        vector_t vtx = v_add(ref_vtxs[face.idxs[i]], rel);
+        cam_space[i] = v_rotate(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+        if (cam_space[i].z < NEAR)
             return;
-
-        vtx = v_rotate(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
-        if (vtx.z < NEAR)
-            return;
-        projected[i] = screen_proj(vtx);
+        projected[i] = screen_proj(cam_space[i]);
     }
-    render_poly(projected[0], projected[1], projected[2], face.c);
-    render_poly(projected[0], projected[2], projected[3], face.c);
+    render_poly(projected[0], projected[1], projected[2],
+                cam_space[0], cam_space[1], cam_space[2], face.norm);
+    render_poly(projected[0], projected[2], projected[3],
+                cam_space[0], cam_space[2], cam_space[3], face.norm);
 }
 
 static void render_block(camera_t *cam, vector_t world) {

@@ -34,13 +34,13 @@ int main(int argc, char *argv[]) {
     load_chunks(chunks, 1);
 
     // set floor
-    // for (int i = 0; i < 4; i++) {
-        // for (int x = 0; x < CHUNK_X; x++) {
-            // for (int z = 0; z < CHUNK_Z; z++) {
-                // set_block(&chunks[i], x, 15, z);
-            // }
-        // }
-    // }
+    for (int i = 0; i < 4; i++) {
+        for (int x = 0; x < CHUNK_X; x++) {
+            for (int z = 0; z < CHUNK_Z; z++) {
+                set_block(&chunks[i], x, 15, z);
+            }
+        }
+    }
 
     set_block(&chunks[7], 1, 0, 2);
     set_block(&chunks[6], 14, 0, 2);

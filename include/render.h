@@ -5,12 +5,6 @@
 #include "world.h"
 #include "controller.h"
 
-typedef struct {
-    float x;
-    float y;
-    float ooz;
-} coord_t;
-
 /** printing */
 void hide_cursor(void);
 void show_cursor(void);
