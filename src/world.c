@@ -34,9 +34,8 @@ void clear_block(chunk_t *chunk, int x, int y, int z) {
     chunk->bits[i/8] &= ~(1u << (7 - (i%8)));
 }
 
-static void init_chunk(chunk_t *chunk, int bit) {
-    uint8_t byte = bit ? ~(uint8_t)0 : (uint8_t)0;
-    memset(chunk->bits, byte, CHUNK_BYTES);
+static void init_chunk(chunk_t *chunk) {
+    memset(chunk->bits, 0, CHUNK_BYTES);
 }
 
 void load_chunks(chunk_t chunks[], int render_dist) {
@@ -51,9 +50,7 @@ void load_chunks(chunk_t chunks[], int render_dist) {
 
                 chunk_t new_chunk;
                 new_chunk.coord = (vector_t){x, y, z};
-                // int bit = (z < 0) ? 1 : 0;
-                int bit = 0;
-                init_chunk(&new_chunk, bit);
+                init_chunk(&new_chunk);
                 chunks[chunk_idx] = new_chunk;
             }
         }

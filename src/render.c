@@ -17,6 +17,8 @@ static char *buff;
 static float *zbuff;
 static int bufflen;
 
+const float NEAR = 0.001f;
+
 static vector_t ref_vtxs[8] = {
     {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
     {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}
@@ -90,6 +92,7 @@ static float edge(coord_t v1, coord_t v2, coord_t p) {
 
 static coord_t screen_proj(vector_t cam_space) {
     float f = HEIGHT / (2.0f * tanf(FOV/2.0f));
+
     float ooz = 1.0f / cam_space.z;
 
     float screen_x = (WIDTH/2.0f + 2.0f * f * cam_space.x * ooz);
@@ -149,6 +152,8 @@ static void render_face(camera_t *cam, vector_t rel, face_t face) {
             return;
 
         vtx = v_rotate(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+        if (vtx.z < NEAR)
+            return;
         projected[i] = screen_proj(vtx);
     }
     render_poly(projected[0], projected[1], projected[2], face.c);

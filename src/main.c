@@ -32,7 +32,16 @@ int main(int argc, char *argv[]) {
 
     init_buffs();
     load_chunks(chunks, 1);
-    set_block(&chunks[7], 0, 0, 0);
+
+    // for (int i = 0; i < 4; i++) {
+        // for (int x = 0; x < CHUNK_X; x++) {
+            // for (int z = 0; z < CHUNK_Z; z++) {
+                // set_block(&chunks[i], x, 15, z);
+            // }
+        // }
+    // }
+    set_block(&chunks[7], 1, 0, 2);
+    set_block(&chunks[6], 14, 0, 2);
 
     while (running) {
         set_buffs();
