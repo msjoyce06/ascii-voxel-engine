@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "vectors.h"
 #include "controller.h"

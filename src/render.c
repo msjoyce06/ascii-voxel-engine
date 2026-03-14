@@ -100,18 +100,23 @@ static float edge(coord_t v1, coord_t v2, coord_t p) {
 static int should_draw_edge(coord_t s0, coord_t s1, vector_t v0, vector_t v1) {
     float dx = fabsf(s1.x - s0.x);
     float dy = fabsf(s1.y - s0.y);
-    float avg_ooz = (s1.ooz + s0.ooz) / 2.0f;
-    float len = sqrtf(dx*dx + dy*dy);
     float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
 
-    // if (dist > 8.0f && dy < 0.1f*dx)
-    if (avg_ooz < 0.1f && dy < 0.1f*dx)
+    if (dist > 8.0f && dy < 0.1f*dx)
         return 0;
     return 1;
 }
 
-static char get_shade_char(vector_t norm, float dist) {
-    char *ramp = " -:+!?ilJ$KX%0#@";
+static char get_shade_char(vector_t norm, float dist, int is_edge) {
+    int levels;
+    char *ramp;
+    if (WIDTH < 250) {
+        ramp = " -+?l$%@";
+        levels = 8;
+    } else {
+        ramp = " -:+!?ilJ$KX%0#@";
+        levels = 16;
+    }
     float base_shade;
 
     if (norm.y == 1.0f)       // top
@@ -133,11 +138,11 @@ static char get_shade_char(vector_t norm, float dist) {
     if (d < 0.0f) d = 0.0f;
     if (d > 1.0f) d = 1.0f;
 
-    int levels = 16;
     float brightness = base_shade * d;
     int idx = (int)(brightness * (levels - 1) + 0.5f);
     if (idx < 0) idx = 0;
     if (idx > levels - 1) idx = levels - 1;
+    if (idx == 0 && is_edge) idx = 1;
 
     return ramp[idx];
 }
@@ -205,10 +210,11 @@ static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
                 float dist = sqrtf(cam_space.x*cam_space.x +
                                    cam_space.y*cam_space.y +
                                    cam_space.z*cam_space.z );
+
                 if (on_edge && dist < 15)
-                    buffer_proj(p, get_shade_char(norm, dist+8));
+                    buffer_proj(p, get_shade_char(norm, dist+8, 1));
                 else
-                    buffer_proj(p, get_shade_char(norm, dist));
+                    buffer_proj(p, get_shade_char(norm, dist, 0));
             }
         }
     }
@@ -268,7 +274,7 @@ void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks) {
 void draw_crosshair(void) {
     coord_t center = {WIDTH/2, HEIGHT/2, INFINITY};
     buffer_proj(center, '+');
-    if (WIDTH > 300) {
+    if (WIDTH > 250) {
         coord_t left = {center.x-1, center.y, INFINITY};
         coord_t right = {center.x+1, center.y, INFINITY};
         buffer_proj(left, '<');

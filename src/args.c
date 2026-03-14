@@ -6,7 +6,7 @@
 #include <math.h>
 
 void err_print_usage(void) {
-    fprintf(stderr, "Usage: ./render -w <width> -h <height> [--fov <fov>] [--fps <fps>]\n");
+    fprintf(stderr, "Usage: ./render -w <width> -h <height> [-r <resolution] [--fov <fov>] [--fps <fps>]\n");
 }
 
 int parse_int(const char *str) {
