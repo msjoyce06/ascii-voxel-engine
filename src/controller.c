@@ -66,9 +66,9 @@ void update_cam(camera_t *cam) {
             case 'a':
             case 's':
             case 'd': {
-                vectorf_t forward = {0, 0, 0.12f};
+                vecf_t forward = {0, 0, 0.12f};
                 forward = v_rotatef(forward, cam->cost, -cam->sint, 1, 0);
-                vectorf_t right = {0.12f, 0, 0};
+                vecf_t right = {0.12f, 0, 0};
                 right = v_rotatef(right, cam->cost, -cam->sint, 1, 0);
                 if (key == 'w') cam->pos = v_addf(cam->pos, forward);
                 if (key == 'a') cam->pos = v_subf(cam->pos, right);
