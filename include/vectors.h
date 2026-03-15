@@ -13,14 +13,14 @@ typedef struct {
     float z;
 } vectorf_t;
 
-vector_t v_add(vector_t v1, vector_t v2);
+vectorf_t vf(vectori_t vi);
+vectori_t vi(vectorf_t vf);
 
-vector_t v_sub(vector_t v1, vector_t v2);
+vectorf_t v_addf(vectorf_t v1, vectorf_t v2);
+vectorf_t v_subf(vectorf_t v1, vectorf_t v2);
 
-float v_dot(vector_t v1, vector_t v2);
+float v_dot(vectorf_t v1, vectorf_t v2);
 
-// float v_dist(vector_t v1, vector_t v2);
-
-vector_t v_rotate(vector_t v, float cost, float sint, float cosp, float sinp);
+vectorf_t v_rotate(vectorf_t v, float cost, float sint, float cosp, float sinp);
 
 #endif

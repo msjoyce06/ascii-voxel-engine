@@ -5,7 +5,7 @@
 #include <signal.h>
 
 typedef struct {
-    vector_t pos;
+    vectorf_t pos;
     float theta, phi;
     float cost, sint;
     float cosp, sinp;

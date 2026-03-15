@@ -47,11 +47,6 @@ static void update_trig(camera_t *cam) {
     cam->sinp = sinf(phi_r);
 }
 
-// static void get_axes(const camera_t *cam, vector_t *x_axis, vector_t *z_axis) {
-    // *x_axis = v_rotate(x_axis, cam->cost, 1, -(cam->sint), 0);
-    // *z_axis = v_rotate(z_axis, cam->cost, 1, -(cam->sint), 0);
-// }
-
 void update_cam(camera_t *cam) {
     int key = read_key();
     if (key != -1) {
@@ -71,14 +66,14 @@ void update_cam(camera_t *cam) {
             case 'a':
             case 's':
             case 'd': {
-                vector_t forward = {0, 0, 0.12f};
-                forward = v_rotate(forward, cam->cost, -cam->sint, 1, 0);
-                vector_t right = {0.12f, 0, 0};
-                right = v_rotate(right, cam->cost, -cam->sint, 1, 0);
-                if (key == 'w') cam->pos = v_add(cam->pos, forward);
-                if (key == 'a') cam->pos = v_sub(cam->pos, right);
-                if (key == 's') cam->pos = v_sub(cam->pos, forward);
-                if (key == 'd') cam->pos = v_add(cam->pos, right);
+                vectorf_t forward = {0, 0, 0.12f};
+                forward = v_rotatef(forward, cam->cost, -cam->sint, 1, 0);
+                vectorf_t right = {0.12f, 0, 0};
+                right = v_rotatef(right, cam->cost, -cam->sint, 1, 0);
+                if (key == 'w') cam->pos = v_addf(cam->pos, forward);
+                if (key == 'a') cam->pos = v_subf(cam->pos, right);
+                if (key == 's') cam->pos = v_subf(cam->pos, forward);
+                if (key == 'd') cam->pos = v_addf(cam->pos, right);
                 break;
             }
         }

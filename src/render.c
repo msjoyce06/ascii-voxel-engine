@@ -16,7 +16,7 @@ typedef struct {
 
 typedef struct {
     int idxs[4];
-    vector_t norm;
+    vectori_t norm;
 } face_t;
 
 static char *buff;
@@ -26,9 +26,11 @@ static int bufflen;
 const float NEAR_PLANE = 0.001f;
 const float EDGE_WIDTH = 0.025f;
 
-static vector_t ref_vtxs[8] = {
-    {0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
-    {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}
+static vectorf_t ref_vtxs[8] = {
+    {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
+    {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+    {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}
 };
 
 static face_t ref_faces[6] = {
@@ -147,7 +149,7 @@ static float edge(coord_t v1, coord_t v2, coord_t p) {
     // return ramp[idx];
 // }
 
-static coord_t screen_proj(vector_t cam_space) {
+static coord_t screen_proj(vectorf_t cam_space) {
     float f = HEIGHT / (2.0f * tanf(FOV/2.0f));
     float ooz = 1.0f / cam_space.z;
 
@@ -227,12 +229,12 @@ static void draw_line(coord_t s0, coord_t s1) {
     // }
 // }
 
-static void render_face(camera_t *cam, vector_t rel, face_t face) {
-    vector_t cam_space[4];
+static void render_face(camera_t *cam, vectorf_t rel, face_t face) {
+    vectorf_t cam_space[4];
     coord_t projected[4];
     for (int i = 0; i < 4; i++) {
-        vector_t vtx = v_add(ref_vtxs[face.idxs[i]], rel);
-        cam_space[i] = v_rotate(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+        vectorf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
+        cam_space[i] = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
         if (cam_space[i].z < NEAR_PLANE)
             return;
         projected[i] = screen_proj(cam_space[i]);
@@ -248,7 +250,7 @@ static void render_face(camera_t *cam, vector_t rel, face_t face) {
 }
 
 static void render_block(camera_t *cam, vectori_t world) {
-    vectorf_t rel = v_sub(world, cam->pos);
+    vectorf_t rel = v_subf(vf(world), cam->pos);
 
     for (int f = 0; f < 6; f++) {
         render_face(cam, rel, ref_faces[f]);
@@ -262,8 +264,8 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (block_present(chunk, x, y, z)) {
                     vectori_t world = {x + coord.x*CHUNK_X,
-                                      y + coord.y*CHUNK_Y,
-                                      z + coord.z*CHUNK_Z};
+                                       y + coord.y*CHUNK_Y,
+                                       z + coord.z*CHUNK_Z};
                     render_block(cam, world);
                 }
             }
