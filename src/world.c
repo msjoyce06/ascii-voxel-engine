@@ -49,7 +49,7 @@ void load_chunks(chunk_t chunks[], int render_dist) {
                 assert(0 <= chunk_idx && chunk_idx < 8);
 
                 chunk_t new_chunk;
-                new_chunk.coord = (vector_t){x, y, z};
+                new_chunk.coord = (vectori_t){x, y, z};
                 init_chunk(&new_chunk);
                 chunks[chunk_idx] = new_chunk;
             }

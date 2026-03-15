@@ -2,10 +2,16 @@
 #define VECTORS_H
 
 typedef struct {
+    int x;
+    int y;
+    int z;
+} vectori_t;
+
+typedef struct {
     float x;
     float y;
     float z;
-} vector_t;
+} vectorf_t;
 
 vector_t v_add(vector_t v1, vector_t v2);
 

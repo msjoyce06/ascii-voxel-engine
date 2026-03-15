@@ -9,8 +9,8 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 typedef struct {
-    float x;
-    float y;
+    int x;
+    int y;
     float ooz;
 } coord_t;
 
@@ -23,7 +23,7 @@ static char *buff;
 static float *zbuff;
 static int bufflen;
 
-const float NEAR = 0.001f;
+const float NEAR_PLANE = 0.001f;
 const float EDGE_WIDTH = 0.025f;
 
 static vector_t ref_vtxs[8] = {
@@ -94,58 +94,58 @@ void free_buffs(void) {
 
 /** rendering */
 static float edge(coord_t v1, coord_t v2, coord_t p) {
-    return (p.x - v1.x) * (v2.y - v1.y) - (p.y - v1.y) * (v2.x - v1.x);
+    return (p.x - v1.x)*(v2.y - v1.y) - (p.y - v1.y)*(v2.x - v1.x);
 }
 
-static int should_draw_edge(coord_t s0, coord_t s1, vector_t v0, vector_t v1) {
-    float dx = fabsf(s1.x - s0.x);
-    float dy = fabsf(s1.y - s0.y);
-    float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
+// static int should_draw_edge(coord_t s0, coord_t s1, vector_t v0, vector_t v1) {
+    // float dx = fabsf(s1.x - s0.x);
+    // float dy = fabsf(s1.y - s0.y);
+    // float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
 
-    if (dist > 8.0f && dy < 0.1f*dx)
-        return 0;
-    return 1;
-}
+    // if (dist > 8.0f && dy < 0.1f*dx)
+        // return 0;
+    // return 1;
+// }
 
-static char get_shade_char(vector_t norm, float dist, int is_edge) {
-    int levels;
-    char *ramp;
-    if (WIDTH < 250) {
-        ramp = " -+?l$%@";
-        levels = 8;
-    } else {
-        ramp = " -:+!?ilJ$KX%0#@";
-        levels = 16;
-    }
-    float base_shade;
+// static char get_shade_char(vector_t norm, float dist, int is_edge) {
+    // int levels;
+    // char *ramp;
+    // if (WIDTH < 250) {
+        // ramp = " -+?l$%@";
+        // levels = 8;
+    // } else {
+        // ramp = " -:+!?ilJ$KX%0#@";
+        // levels = 16;
+    // }
+    // float base_shade;
 
-    if (norm.y == 1.0f)       // top
-        base_shade = 1.1f;
-    else if (norm.z == -1.0f) // south
-        base_shade = 0.8f;
-    else if (norm.x == -1.0f) // west
-        base_shade = 0.65f;
-    else if (norm.z == 1.0f)  // north
-        base_shade = 0.55f;
-    else if (norm.x == 1.0f)  // east
-        base_shade = 0.45f;
-    else                      // bottom
-        base_shade = 0.25f;
+    // if (norm.y == 1.0f)       // top
+        // base_shade = 1.1f;
+    // else if (norm.z == -1.0f) // south
+        // base_shade = 0.8f;
+    // else if (norm.x == -1.0f) // west
+        // base_shade = 0.65f;
+    // else if (norm.z == 1.0f)  // north
+        // base_shade = 0.55f;
+    // else if (norm.x == 1.0f)  // east
+        // base_shade = 0.45f;
+    // else                      // bottom
+        // base_shade = 0.25f;
 
-    float near = 0.5f;
-    float far = 18.0f;
-    float d = 1.0f - (dist - near) / (far - near);
-    if (d < 0.0f) d = 0.0f;
-    if (d > 1.0f) d = 1.0f;
+    // float near = 0.5f;
+    // float far = 18.0f;
+    // float d = 1.0f - (dist - near) / (far - near);
+    // if (d < 0.0f) d = 0.0f;
+    // if (d > 1.0f) d = 1.0f;
 
-    float brightness = base_shade * d;
-    int idx = (int)(brightness * (levels - 1) + 0.5f);
-    if (idx < 0) idx = 0;
-    if (idx > levels - 1) idx = levels - 1;
-    if (idx == 0 && is_edge) idx = 1;
+    // float brightness = base_shade * d;
+    // int idx = (int)(brightness * (levels - 1) + 0.5f);
+    // if (idx < 0) idx = 0;
+    // if (idx > levels - 1) idx = levels - 1;
+    // if (idx == 0 && is_edge) idx = 1;
 
-    return ramp[idx];
-}
+    // return ramp[idx];
+// }
 
 static coord_t screen_proj(vector_t cam_space) {
     float f = HEIGHT / (2.0f * tanf(FOV/2.0f));
@@ -154,7 +154,7 @@ static coord_t screen_proj(vector_t cam_space) {
     float screen_x = (WIDTH/2.0f + 2.0f * f * cam_space.x * ooz);
     float screen_y = (HEIGHT/2.0f - f * cam_space.y * ooz);
 
-    return (coord_t){screen_x, screen_y, ooz};
+    return (coord_t){(int)screen_x, (int)screen_y, ooz};
 }
 
 static void buffer_proj(coord_t p, char c) {
@@ -167,82 +167,88 @@ static void buffer_proj(coord_t p, char c) {
     }
 }
 
-static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
-                        vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
-    int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
-    int right  = MIN(WIDTH,  (int)ceilf(MAX(s0.x, MAX(s1.x, s2.x))));
-    int top    = MAX(0,      (int)floorf(MIN(s0.y, MIN(s1.y, s2.y))));
-    int bottom = MIN(HEIGHT, (int)ceilf(MAX(s0.y, MAX(s1.y, s2.y))));
+static void draw_line(coord_t s0, coord_t s1) {
+    int dx = s1.x - s0.x;
+    int dy = s1.y - s0.y;
+    int d = 2*dy - dx;
 
-    float area = edge(s0, s1, s2);
-    const float eps = 1e-6f;
-    if (fabsf(area) < eps)
-        return;
-
-    int draw_e0 = should_draw_edge(s1, s2, v1, v2) && (ignore_edge != 0);
-    int draw_e1 = should_draw_edge(s2, s0, v2, v0) && (ignore_edge != 2);
-    int draw_e2 = should_draw_edge(s0, s1, v0, v1) && (ignore_edge != 1);
-
-    for (int y = top; y < bottom; y++) {
-        for (int x = left; x < right; x++) {
-            coord_t p = {x + 0.5f, y + 0.5f, 0};
-
-            float w0 = edge(s1, s2, p);
-            float w1 = edge(s2, s0, p);
-            float w2 = edge(s0, s1, p);
-
-            if ((w0 >= -eps && w1 >= -eps && w2 >= -eps) ||
-                (w0 <= eps && w1 <= eps && w2 <= eps)) {
-
-                float a = w0 / area;
-                float b = w1 / area;
-                float c = w2 / area;
-
-                p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
-
-                int on_edge = ((draw_e0 && fabsf(a) < EDGE_WIDTH) ||
-                               (draw_e1 && fabsf(b) < EDGE_WIDTH) ||
-                               (draw_e2 && fabsf(c) < EDGE_WIDTH));
-
-                vector_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
-                                       a*v0.y + b*v1.y + c*v2.y,
-                                       a*v0.z + b*v1.z + c*v2.z };
-                float dist = sqrtf(cam_space.x*cam_space.x +
-                                   cam_space.y*cam_space.y +
-                                   cam_space.z*cam_space.z );
-
-                if (on_edge && dist < 15)
-                    buffer_proj(p, get_shade_char(norm, dist+8, 1));
-                else
-                    buffer_proj(p, get_shade_char(norm, dist, 0));
-            }
-        }
-    }
 }
 
-static void render_face(camera_t *cam, vector_t rel, face_t face) {
-    // backface culling
-    vector_t v = v_add(ref_vtxs[face.idxs[0]], rel);
-    if (v_dot(face.norm, v) >= 0)
-        return;
+// static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
+                        // vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
+    // int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
+    // int right  = MIN(WIDTH,  (int)ceilf(MAX(s0.x, MAX(s1.x, s2.x))));
+    // int top    = MAX(0,      (int)floorf(MIN(s0.y, MIN(s1.y, s2.y))));
+    // int bottom = MIN(HEIGHT, (int)ceilf(MAX(s0.y, MAX(s1.y, s2.y))));
 
+    // float area = edge(s0, s1, s2);
+    // const float eps = 1e-6f;
+    // if (fabsf(area) < eps)
+        // return;
+
+    // int draw_e0 = should_draw_edge(s1, s2, v1, v2) && (ignore_edge != 0);
+    // int draw_e1 = should_draw_edge(s2, s0, v2, v0) && (ignore_edge != 2);
+    // int draw_e2 = should_draw_edge(s0, s1, v0, v1) && (ignore_edge != 1);
+
+    // for (int y = top; y < bottom; y++) {
+        // for (int x = left; x < right; x++) {
+            // coord_t p = {x + 0.5f, y + 0.5f, 0};
+
+            // float w0 = edge(s1, s2, p);
+            // float w1 = edge(s2, s0, p);
+            // float w2 = edge(s0, s1, p);
+
+            // if ((w0 >= -eps && w1 >= -eps && w2 >= -eps) ||
+                // (w0 <= eps && w1 <= eps && w2 <= eps)) {
+
+                // float a = w0 / area;
+                // float b = w1 / area;
+                // float c = w2 / area;
+
+                // p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
+
+                // int on_edge = ((draw_e0 && fabsf(a) < EDGE_WIDTH) ||
+                               // (draw_e1 && fabsf(b) < EDGE_WIDTH) ||
+                               // (draw_e2 && fabsf(c) < EDGE_WIDTH));
+
+                // vector_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
+                                       // a*v0.y + b*v1.y + c*v2.y,
+                                       // a*v0.z + b*v1.z + c*v2.z };
+                // float dist = sqrtf(cam_space.x*cam_space.x +
+                                   // cam_space.y*cam_space.y +
+                                   // cam_space.z*cam_space.z );
+
+                // if (on_edge && dist < 15)
+                    // buffer_proj(p, get_shade_char(norm, dist+8, 1));
+                // else
+                    // buffer_proj(p, get_shade_char(norm, dist, 0));
+            // }
+        // }
+    // }
+// }
+
+static void render_face(camera_t *cam, vector_t rel, face_t face) {
     vector_t cam_space[4];
     coord_t projected[4];
     for (int i = 0; i < 4; i++) {
         vector_t vtx = v_add(ref_vtxs[face.idxs[i]], rel);
         cam_space[i] = v_rotate(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
-        if (cam_space[i].z < NEAR)
+        if (cam_space[i].z < NEAR_PLANE)
             return;
         projected[i] = screen_proj(cam_space[i]);
     }
-    render_poly(projected[0], projected[1], projected[2], 2,
-                cam_space[0], cam_space[1], cam_space[2], face.norm);
-    render_poly(projected[0], projected[2], projected[3], 1,
-                cam_space[0], cam_space[2], cam_space[3], face.norm);
+    for (int i = 0; i < 3; i++) {
+        int j = i+1;
+        draw_line(projected[i], projected[j]);
+    }
+    // render_poly(projected[0], projected[1], projected[2], 2,
+                // cam_space[0], cam_space[1], cam_space[2], face.norm);
+    // render_poly(projected[0], projected[2], projected[3], 1,
+                // cam_space[0], cam_space[2], cam_space[3], face.norm);
 }
 
-static void render_block(camera_t *cam, vector_t world) {
-    vector_t rel = v_sub(world, cam->pos);
+static void render_block(camera_t *cam, vectori_t world) {
+    vectorf_t rel = v_sub(world, cam->pos);
 
     for (int f = 0; f < 6; f++) {
         render_face(cam, rel, ref_faces[f]);
@@ -250,12 +256,12 @@ static void render_block(camera_t *cam, vector_t world) {
 }
 
 static void render_chunk(camera_t *cam, const chunk_t *chunk) {
-    vector_t coord = chunk->coord;
+    vectori_t coord = chunk->coord;
     for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (block_present(chunk, x, y, z)) {
-                    vector_t world = {x + coord.x*CHUNK_X,
+                    vectori_t world = {x + coord.x*CHUNK_X,
                                       y + coord.y*CHUNK_Y,
                                       z + coord.z*CHUNK_Z};
                     render_block(cam, world);
