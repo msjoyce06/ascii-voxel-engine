@@ -2,6 +2,7 @@
 #include "args.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include <assert.h>
 
@@ -16,13 +17,14 @@ typedef struct {
 
 typedef struct {
     int idxs[4];
-    veci_t norm;
+    vecf_t norm;
 } face_t;
 
 static char *buff;
 static float *zbuff;
 static int bufflen;
 
+const float EPS = 1e-6f;
 const float NEAR_PLANE = 0.001f;
 const float EDGE_WIDTH = 0.025f;
 
@@ -95,11 +97,11 @@ void free_buffs(void) {
 }
 
 /** rendering */
-// static float edge(coord_t v1, coord_t v2, coord_t p) {
-    // return (p.x - v1.x)*(v2.y - v1.y) - (p.y - v1.y)*(v2.x - v1.x);
-// }
+static float edge(coord_t v1, coord_t v2, coord_t p) {
+    return (p.x - v1.x)*(v2.y - v1.y) - (p.y - v1.y)*(v2.x - v1.x);
+}
 
-// static int should_draw_edge(coord_t s0, coord_t s1, vector_t v0, vector_t v1) {
+// static int should_draw_edge(coord_t s0, coord_t s1, vecf_t v0, vecf_t v1) {
     // float dx = fabsf(s1.x - s0.x);
     // float dy = fabsf(s1.y - s0.y);
     // float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
@@ -109,7 +111,7 @@ void free_buffs(void) {
     // return 1;
 // }
 
-// static char get_shade_char(vector_t norm, float dist, int is_edge) {
+// static char get_shade_char(vecf_t norm, float dist) {
     // int levels;
     // char *ramp;
     // if (WIDTH < 250) {
@@ -144,10 +146,24 @@ void free_buffs(void) {
     // int idx = (int)(brightness * (levels - 1) + 0.5f);
     // if (idx < 0) idx = 0;
     // if (idx > levels - 1) idx = levels - 1;
-    // if (idx == 0 && is_edge) idx = 1;
 
     // return ramp[idx];
 // }
+
+static char get_shade_char(vecf_t norm) {
+    if (norm.y == 1.0f)       // top
+        return '@';
+    else if (norm.z == -1.0f) // south
+        return '$';
+    else if (norm.x == -1.0f) // west
+        return '?';
+    else if (norm.z == 1.0f)  // north
+        return '$';
+    else if (norm.x == 1.0f)  // east
+        return '?';
+    else                      // bottom
+        return '+';
+}
 
 static coord_t screen_proj(vecf_t cam_space) {
     float f = HEIGHT / (2.0f * tanf(FOV/2.0f));
@@ -156,13 +172,13 @@ static coord_t screen_proj(vecf_t cam_space) {
     float screen_x = (WIDTH/2.0f + 2.0f * f * cam_space.x * ooz);
     float screen_y = (HEIGHT/2.0f - f * cam_space.y * ooz);
 
-    return (coord_t){(int)round(screen_x), (int)round(screen_y), ooz};
+    return (coord_t){round(screen_x), round(screen_y), ooz};
 }
 
 static void buffer_proj(coord_t p, char c) {
     if (0 <= p.x && p.x < WIDTH && 0 <= p.y && p.y < HEIGHT) {
-        int idx = (int)p.y * WIDTH + (int)p.x;
-        if (p.ooz > zbuff[idx]) {
+        int idx = p.y * WIDTH + p.x;
+        if (p.ooz >= zbuff[idx]) {
             zbuff[idx] = p.ooz;
             buff[idx] = c;
         }
@@ -170,80 +186,68 @@ static void buffer_proj(coord_t p, char c) {
 }
 
 static void draw_line(coord_t s0, coord_t s1) {
-    int dx = abs(s1.x - s0.x);
-    int sx = s0.x < s1.x ? 1 : -1;
-    int dy = -abs(s1.y - s0.y);
-    int sy = s0.y < s1.y ? 1 : -1;
-    int error = dx + dy;
+    int dx = s1.x - s0.x;
+    int dy = s1.y - s0.y;
+    int steps = MAX(abs(dx), abs(dy));
+    if (steps == 0) {
+        buffer_proj(s0, '.');
+        return;
+    }
 
-    while (1) {
-        buffer_proj(s0, '@');
-        int e2 = 2 * error;
-        if (e2 >= dy) {
-            if (s0.x == s1.x) break;
-            error += dy;
-            s0.x += sx;
-        }
-        if (e2 <= dx) {
-            if (s0.y == s1.y) break;
-            error += dx;
-            s0.y += sy;
-        }
+    for (int i = 0; i <= steps; i++) {
+        float t = (float)i / (float)steps;
+
+        coord_t p = {
+            .x = (int)roundf(s0.x + t * dx),
+            .y = (int)roundf(s0.y + t * dy),
+            .ooz = s0.ooz + t * (s1.ooz - s0.ooz)
+        };
+        buffer_proj(p, '.');
+        buffer_proj((coord_t){p.x+1, p.y, p.ooz}, '.');
     }
 }
 
-// static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
-                        // vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
-    // int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
-    // int right  = MIN(WIDTH,  (int)ceilf(MAX(s0.x, MAX(s1.x, s2.x))));
-    // int top    = MAX(0,      (int)floorf(MIN(s0.y, MIN(s1.y, s2.y))));
-    // int bottom = MIN(HEIGHT, (int)ceilf(MAX(s0.y, MAX(s1.y, s2.y))));
+static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, float area,
+                        vecf_t v0, vecf_t v1, vecf_t v2, vecf_t norm) {
+    int left   = MAX(0,        MIN(s0.x, MIN(s1.x, s2.x)));
+    int right  = MIN(WIDTH,  MAX(s0.x, MAX(s1.x, s2.x)));
+    int top    = MAX(0,        MIN(s0.y, MIN(s1.y, s2.y)));
+    int bottom = MIN(HEIGHT, MAX(s0.y, MAX(s1.y, s2.y)));
 
-    // float area = edge(s0, s1, s2);
-    // const float eps = 1e-6f;
-    // if (fabsf(area) < eps)
-        // return;
+    if (fabsf(area) < EPS)
+        return;
 
-    // int draw_e0 = should_draw_edge(s1, s2, v1, v2) && (ignore_edge != 0);
-    // int draw_e1 = should_draw_edge(s2, s0, v2, v0) && (ignore_edge != 2);
-    // int draw_e2 = should_draw_edge(s0, s1, v0, v1) && (ignore_edge != 1);
+    for (int y = top; y < bottom; y++) {
+        for (int x = left; x < right; x++) {
+            coord_t p = {x, y, 0};
 
-    // for (int y = top; y < bottom; y++) {
-        // for (int x = left; x < right; x++) {
-            // coord_t p = {x + 0.5f, y + 0.5f, 0};
+            float w0 = edge(s1, s2, p);
+            float w1 = edge(s2, s0, p);
+            float w2 = edge(s0, s1, p);
 
-            // float w0 = edge(s1, s2, p);
-            // float w1 = edge(s2, s0, p);
-            // float w2 = edge(s0, s1, p);
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
 
-            // if ((w0 >= -eps && w1 >= -eps && w2 >= -eps) ||
-                // (w0 <= eps && w1 <= eps && w2 <= eps)) {
+                float a = w0 / area;
+                float b = w1 / area;
+                float c = w2 / area;
 
-                // float a = w0 / area;
-                // float b = w1 / area;
-                // float c = w2 / area;
+                p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
 
-                // p.ooz = a*s0.ooz + b*s1.ooz + c*s2.ooz;
-
-                // int on_edge = ((draw_e0 && fabsf(a) < EDGE_WIDTH) ||
-                               // (draw_e1 && fabsf(b) < EDGE_WIDTH) ||
-                               // (draw_e2 && fabsf(c) < EDGE_WIDTH));
-
-                // vector_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
+                // vecf_t cam_space = { a*v0.x + b*v1.x + c*v2.x,
                                        // a*v0.y + b*v1.y + c*v2.y,
                                        // a*v0.z + b*v1.z + c*v2.z };
                 // float dist = sqrtf(cam_space.x*cam_space.x +
                                    // cam_space.y*cam_space.y +
                                    // cam_space.z*cam_space.z );
+                (void)v0;
+                (void)v1;
+                (void)v2;
 
-                // if (on_edge && dist < 15)
-                    // buffer_proj(p, get_shade_char(norm, dist+8, 1));
-                // else
-                    // buffer_proj(p, get_shade_char(norm, dist, 0));
-            // }
-        // }
-    // }
-// }
+                buffer_proj(p, get_shade_char(norm));
+            }
+        }
+    }
+}
 
 static void render_face(camera_t *cam, vecf_t rel, face_t face) {
     vecf_t cam_space[4];
@@ -255,14 +259,21 @@ static void render_face(camera_t *cam, vecf_t rel, face_t face) {
             return;
         projected[i] = screen_proj(cam_space[i]);
     }
+    float area1 = edge(projected[0], projected[1], projected[2]);
+    if (area1 <= 0) return;
+    float area2 = edge(projected[0], projected[2], projected[3]);
+    if (area2 <= 0) return;
+
+    render_poly(projected[0], projected[1], projected[2], area1,
+                cam_space[0], cam_space[1], cam_space[2], face.norm);
+    render_poly(projected[0], projected[2], projected[3], area2,
+                cam_space[0], cam_space[2], cam_space[3], face.norm);
+
     for (int i = 0; i < 4; i++) {
         int j = (i+1) % 4;
-        draw_line(projected[i], projected[j]);
+        draw_line((coord_t){projected[i].x, projected[i].y, projected[i].ooz + 0.01f},
+                  (coord_t){projected[j].x, projected[j].y, projected[j].ooz + 0.01f});
     }
-    // render_poly(projected[0], projected[1], projected[2], 2,
-                // cam_space[0], cam_space[1], cam_space[2], face.norm);
-    // render_poly(projected[0], projected[2], projected[3], 1,
-                // cam_space[0], cam_space[2], cam_space[3], face.norm);
 }
 
 static void render_block(camera_t *cam, veci_t world) {
