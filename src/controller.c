@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "render.h"
 #include <termios.h>
 #include <unistd.h>
 #include <math.h>
@@ -79,5 +80,20 @@ void update_cam(camera_t *cam) {
         }
         if (cam->phi > 89.0f) cam->phi = 89.0f;
         if (cam->phi < -89.0f) cam->phi = -89.0f;
+    }
+}
+
+void raycast_block(camera_t *cam, chunk_t chunks[]) {
+    vecf_t dir = {
+        .x = cam->sint*cam->cosp,
+        .y = cam->sinp,
+        .z = cam->cost*cam->cosp
+    };
+    vecf_t ray = cam->pos;
+    for (int i = 0; i < 5; i++) {
+        if (block_present_world(ray, chunks)) {
+            cam->looking_at = (veci_t){(int)ray.x, (int)ray.y, (int)ray.z};
+        }
+        ray = v_addf(ray, dir);
     }
 }

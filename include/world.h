@@ -3,6 +3,7 @@
 
 #include "vectors.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #define CHUNK_X 16
 #define CHUNK_Y 16
@@ -17,12 +18,12 @@ typedef struct {
 
 /** returns 1 if block is present,
   * 0 if not, -1 if out of bounds  */
-int block_present(const chunk_t *chunk, int x, int y, int z);
+bool block_present_world(vecf_t world_pos, const chunk_t chunks[]);
 
 void set_block(chunk_t *chunk, int x, int y, int z);
 
 void clear_block(chunk_t *chunk, int x, int y, int z);
 
-void load_chunks(chunk_t *chunks, int render_dist);
+void load_chunks(chunk_t chunks[], int render_dist);
 
 #endif

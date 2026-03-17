@@ -16,10 +16,24 @@ static int block_index(int x, int y, int z) {
     // int x = i % CHUNK_X;
 // }
 
-int block_present(const chunk_t *chunk, int x, int y, int z) {
+static int block_present_chunk(const chunk_t *chunk, veci_t chunk_offset) {
     int i = block_index(x, y, z);
     if (i == -1) return -1;
     return (chunk->bits[i/8] >> (7 - (i % 8))) & 1;
+}
+
+bool block_present_world(vecf_t world_pos, chunk_t chunks[] {
+    int x = (int)world_pos.x;
+    int y = (int)world_pos.y;
+    int z = (int)world_pos.z;
+    veci_t chunk_coord = {x/CHUNK_X, y/CHUNK_Y, z/CHUNK_Z}; // key
+    veci_t chunk_offset = {
+        .x = world_pos.x - chunk_coord.x,
+        .y = world_pos.y - chunk_coord.y,
+        .z = world_pos.z - chunk_coord.z
+    };
+    int chunk_idx = chunk_coord.y*4 + chunk_coord.z*2 + chunk_coord.x;
+    return block_present(chunks[chunk_idx], chunk_offset);
 }
 
 void set_block(chunk_t *chunk, int x, int y, int z) {

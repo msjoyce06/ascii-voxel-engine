@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
         update_cam(&cam);
 
         render_chunks(&cam, chunks, NUM_CHUNKS);
+        raycast_block(&cam, chunks);
         draw_crosshair();
 
         print_frame();
