@@ -5,6 +5,8 @@
 #include "world.h"
 #include "controller.h"
 
+typedef struct camera camera_t;
+
 /** printing */
 void hide_cursor(void);
 void show_cursor(void);

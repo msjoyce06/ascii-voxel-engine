@@ -84,16 +84,32 @@ void update_cam(camera_t *cam) {
 }
 
 void raycast_block(camera_t *cam, chunk_t chunks[]) {
-    vecf_t dir = {
-        .x = cam->sint*cam->cosp,
-        .y = cam->sinp,
-        .z = cam->cost*cam->cosp
-    };
     vecf_t ray = cam->pos;
-    for (int i = 0; i < 5; i++) {
-        if (block_present_world(ray, chunks)) {
-            cam->looking_at = (veci_t){(int)ray.x, (int)ray.y, (int)ray.z};
-        }
-        ray = v_addf(ray, dir);
+
+    vecf_t dir = {cam->sint*cam->cosp, cam->sinp, cam->cost*cam->cosp};
+
+    vecf_t step = (vecf_t){
+        sqrtf(1 + (dir.z/dir.x)*(dir.z/dir.x)), sqrt(1 +
     }
+
+    vecf_t end = (vecf_t){
+        start.x + cam->sint*cam->cosp
 }
+
+// void raycast_block(camera_t *cam, chunk_t chunks[]) {
+    // vecf_t dir = {
+        // .x = cam->sint*cam->cosp,
+        // .y = cam->sinp,
+        // .z = cam->cost*cam->cosp
+    // };
+    // vecf_t ray = cam->pos;
+    // for (int i = 0; i < 5; i++) {
+        // if (block_present_world(ray, chunks)) {
+            // cam->raycast.hit = true;
+            // cam->raycast.block = (veci_t){(int)floorf(ray.x),
+                                          // (int)floorf(ray.y),
+                                          // (int)floorf(ray.z)};
+        // }
+        // ray = v_addf(ray, dir);
+    // }
+// }

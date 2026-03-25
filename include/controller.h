@@ -6,18 +6,27 @@
 #include <signal.h>
 #include <stdbool.h>
 
+typedef enum {
+    NORTH,
+    SOUTH,
+    EAST,
+    WEST,
+    TOP,
+    BOTTOM
+} face_dir_t;
+
 typedef struct {
     bool hit;
     veci_t block;
     face_dir_t face;
 } ray_hit_t;
 
-typedef struct {
+typedef struct camera {
     vecf_t pos;
     float theta, phi;
     float cost, sint;
     float cosp, sinp;
-    veci_t looking_at;
+    ray_hit_t raycast;
 } camera_t;
 
 extern volatile sig_atomic_t running;

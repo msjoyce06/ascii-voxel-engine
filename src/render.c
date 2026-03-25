@@ -16,15 +16,6 @@ typedef struct {
     vecf_t cam_space;
 } pixel_t;
 
-typedef enum {
-    NORTH,
-    SOUTH,
-    EAST,
-    WEST,
-    TOP,
-    BOTTOM
-} face_dir_t;
-
 typedef struct {
     int idxs[4];
     face_dir_t dir;
@@ -46,12 +37,12 @@ static vecf_t ref_vtxs[8] = {
 };
 
 static face_t ref_faces[6] = {
-    { .idxs = {4, 0, 3, 7}, WEST },   // x = 0
-    { .idxs = {1, 5, 6, 2}, EAST },   // x = 1
-    { .idxs = {0, 1, 2, 3}, SOUTH },  // z = 0
-    { .idxs = {5, 4, 7, 6}, NORTH },  // z = 1
-    { .idxs = {4, 5, 1, 0}, BOTTOM }, // y = 0
-    { .idxs = {3, 2, 6, 7}, TOP }     // y = 1
+    { .idxs = {4, 0, 3, 7}, .dir = WEST },   // x = 0
+    { .idxs = {1, 5, 6, 2}, .dir = EAST },   // x = 1
+    { .idxs = {0, 1, 2, 3}, .dir = SOUTH },  // z = 0
+    { .idxs = {5, 4, 7, 6}, .dir = NORTH },  // z = 1
+    { .idxs = {4, 5, 1, 0}, .dir = BOTTOM }, // y = 0
+    { .idxs = {3, 2, 6, 7}, .dir = TOP }     // y = 1
 };
 
 /** printing */
@@ -233,6 +224,34 @@ static void draw_line(pixel_t s0, pixel_t s1) {
     }
 }
 
+void outline_block(camera_t *cam, veci_t block_pos) {
+    vecf_t rel = v_subf(vf(world), cam->pos);
+    for (int f = 0; f < 6; f++) {
+        face_t face = ref_faces[f];
+        vecf_t pixels[4];
+        for (int i = 0; i < 4; i++) {
+            vecf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
+            vtx = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+            if (vtx.z < NEAR_PLANE)
+                return;
+            pixels[i] = screen_proj(vtx);
+        }
+        float area1 = edge(pixels[0], pixels[1], pixels[2]);
+        if (area1 <= 0) return;
+        float area2 = edge(pixels[0], pixels[2], pixels[3]);
+        if (area2 <= 0) return;
+
+        for (int i = 0; i < 4; i++) {
+            int j = (i+1) % 4;
+            pixel_t p0 = pixels[i];
+            p0.ooz += 0.01f;
+            pixel_t p1 = pixels[j];
+            p1.ooz += 0.01f;
+            draw_line(p0, p1);
+        }
+    }
+}
+
 static void render_poly(pixel_t p0,  pixel_t p1,  pixel_t p2, float area, face_dir_t dir) {
     int left   = MAX(0,        MIN(p0.x, MIN(p1.x, p2.x)));
     int right  = MIN(WIDTH,  MAX(p0.x, MAX(p1.x, p2.x)));
@@ -299,35 +318,13 @@ static void render_block(camera_t *cam, veci_t world) {
     for (int f = 0; f < 6; f++) {
         render_face(cam, rel, ref_faces[f]);
     }
-}
-
-void outline_block(camera_t *cam, veci_t block_pos) {
-    vecf_t rel = v_subf(vf(world), cam->pos);
-    for (int f = 0; f < 6; f++) {
-        face_t face = ref_faces[f];
-        vecf_t pixels[4];
-        for (int i = 0; i < 4; i++) {
-            vecf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
-            vtx = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
-            if (vtx.z < NEAR_PLANE)
-                return;
-            pixels[i] = screen_proj(vtx);
-        }
-        float area1 = edge(pixels[0], pixels[1], pixels[2]);
-        if (area1 <= 0) return;
-        float area2 = edge(pixels[0], pixels[2], pixels[3]);
-        if (area2 <= 0) return;
-
-        for (int i = 0; i < 4; i++) {
-            int j = (i+1) % 4;
-            pixel_t p0 = pixels[i];
-            p0.ooz += 0.01f;
-            pixel_t p1 = pixels[j];
-            p1.ooz += 0.01f;
-            draw_line(p0, p1);
-        }
+    if (cam->raycast.hit && world.x == cam->raycast.block.x
+                         && world.y == cam->raycast.block.y
+                         && world.z == cam->raycast.block.z) {
+        outline_block(cam, world);
     }
 }
+
 
 static void render_chunk(camera_t *cam, const chunk_t *chunk) {
     veci_t coord = chunk->coord;
