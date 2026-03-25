@@ -111,10 +111,10 @@ static char get_shade_char(vector_t norm, float dist, int is_edge) {
     int levels;
     char *ramp;
     if (WIDTH < 250) {
-        ramp = " -+?l$%@";
+        ramp = " .+?l$%@";
         levels = 8;
     } else {
-        ramp = " -:+!?ilJ$KX%0#@";
+        ramp = " .:+!?ilJ$KX%0#@";
         levels = 16;
     }
     float base_shade;
