@@ -29,8 +29,6 @@ typedef struct camera {
     ray_hit_t raycast;
 } camera_t;
 
-extern volatile sig_atomic_t running;
-
 /** signal interrupt */
 void handle_sigint(int sig);
 
@@ -40,6 +38,6 @@ void disable_raw_mode(void);
 
 /** update */
 void update_cam(camera_t *cam);
-void raycast_block(camera_t *cam, chunk_t chunks[]);
+void raycast_block(camera_t *cam, const chunk_t chunks[]);
 
 #endif

@@ -225,10 +225,10 @@ static void draw_line(pixel_t s0, pixel_t s1) {
 }
 
 void outline_block(camera_t *cam, veci_t block_pos) {
-    vecf_t rel = v_subf(vf(world), cam->pos);
+    vecf_t rel = v_subf(vf(block_pos), cam->pos);
     for (int f = 0; f < 6; f++) {
         face_t face = ref_faces[f];
-        vecf_t pixels[4];
+        pixel_t pixels[4];
         for (int i = 0; i < 4; i++) {
             vecf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
             vtx = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
@@ -301,15 +301,17 @@ static void render_face(camera_t *cam, vecf_t rel, face_t face) {
             return;
         pixels[i] = screen_proj(vtx);
     }
+
     float area1 = edge(pixels[0], pixels[1], pixels[2]);
-    if (area1 <= 0) return;
+    if (area1 <= 0)
+        return;
+
     float area2 = edge(pixels[0], pixels[2], pixels[3]);
-    if (area2 <= 0) return;
+    if (area2 <= 0)
+        return;
 
     render_poly(pixels[0], pixels[1], pixels[2], area1, face.dir);
     render_poly(pixels[0], pixels[2], pixels[3], area2, face.dir);
-
-    }
 }
 
 static void render_block(camera_t *cam, veci_t world) {
@@ -318,20 +320,14 @@ static void render_block(camera_t *cam, veci_t world) {
     for (int f = 0; f < 6; f++) {
         render_face(cam, rel, ref_faces[f]);
     }
-    if (cam->raycast.hit && world.x == cam->raycast.block.x
-                         && world.y == cam->raycast.block.y
-                         && world.z == cam->raycast.block.z) {
-        outline_block(cam, world);
-    }
 }
-
 
 static void render_chunk(camera_t *cam, const chunk_t *chunk) {
     veci_t coord = chunk->coord;
     for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
-                if (block_present(chunk, x, y, z)) {
+                if (is_solid_in_chunk(*chunk, (veci_t){x, y, z})) {
                     veci_t world = {x + coord.x*CHUNK_X,
                                        y + coord.y*CHUNK_Y,
                                        z + coord.z*CHUNK_Z};
@@ -342,9 +338,16 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
     }
 }
 
-void render_chunks(camera_t *cam, chunk_t chunks[], int num_chunks) {
+void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks) {
     for (int i = 0; i < num_chunks; i++) {
         render_chunk(cam, &chunks[i]);
+    }
+}
+
+void highlight_selection(camera_t *cam) {
+    if (cam->raycast.hit) {
+        veci_t block = cam->raycast.block;
+        outline_block(cam, block);
     }
 }
 
