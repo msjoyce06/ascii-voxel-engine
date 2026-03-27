@@ -19,6 +19,7 @@ void free_buffs(void);
 
 /** rendering */
 void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks);
+void highlight_selection(camera_t *cam);
 void draw_crosshair(void);
 
 #endif

@@ -86,3 +86,75 @@ void update_cam(camera_t *cam) {
         if (cam->phi < -89.0f) cam->phi = -89.0f;
     }
 }
+
+void raycast_block(camera_t *cam, const chunk_t chunks[]) {
+    vecf_t start = cam->pos;
+
+    vecf_t dir = {
+        .x = cam->sint * cam->cosp,
+        .y = cam->sinp,
+        .z = cam->cost * cam->cosp
+    };
+
+    veci_t cell = {
+        .x = (int)floorf(cam->pos.x),
+        .y = (int)floorf(cam->pos.y),
+        .z = (int)floorf(cam->pos.z),
+    };
+
+    int step_x = (dir.x > 0) ? 1 : (dir.x < 0) ? -1 : 0;
+    int step_y = (dir.y > 0) ? 1 : (dir.y < 0) ? -1 : 0;
+    int step_z = (dir.z > 0) ? 1 : (dir.z < 0) ? -1 : 0;
+
+    float delta_x = (dir.x != 0.0f) ? fabsf(1.0f / dir.x) : INFINITY;
+    float delta_y = (dir.y != 0.0f) ? fabsf(1.0f / dir.y) : INFINITY;
+    float delta_z = (dir.z != 0.0f) ? fabsf(1.0f / dir.z) : INFINITY;
+
+    float side_x, side_y, side_z;
+    face_dir_t hit_face = NORTH; // placeholder
+    bool hit = false;
+
+    if (dir.x > 0)
+        side_x = ((float)(cell.x + 1) - start.x) * delta_x;
+    else
+        side_x = (start.x - (float)cell.x) * delta_x;
+
+    if (dir.y > 0)
+        side_y = ((float)(cell.y + 1) - start.y) * delta_y;
+    else
+        side_y = (start.y - (float)cell.y) * delta_y;
+
+    if (dir.z > 0)
+        side_z = ((float)(cell.z + 1) - start.z) * delta_z;
+    else
+        side_z = (start.z - (float)cell.z) * delta_z;
+
+    for (int i = 0; i < 5; i++) {
+        if (is_solid_block(chunks, cell)) {
+            hit = true;
+            break;
+        }
+
+        if (side_x < side_y && side_x < side_z) {
+            cell.x += step_x;
+            side_x += delta_x;
+            hit_face = (step_x > 0) ? WEST : EAST;
+        }
+        else if (side_y < side_z) {
+            cell.y += step_y;
+            side_y += delta_y;
+            hit_face = (step_y > 0) ? BOTTOM : TOP;
+        }
+        else {
+            cell.z += step_z;
+            side_z += delta_z;
+            hit_face = (step_z > 0) ? SOUTH : NORTH;
+        }
+    }
+    cam->raycast.hit = hit;
+    if (hit) {
+        cam->raycast.block = cell;
+        cam->raycast.face = hit_face;
+    }
+}
+

@@ -22,5 +22,6 @@ void disable_raw_mode(void);
 
 /** update */
 void update_cam(camera_t *cam);
+void raycast_block(camera_t *cam, const chunk_t chunks[]);
 
 #endif

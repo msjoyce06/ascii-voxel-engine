@@ -167,6 +167,68 @@ static void buffer_proj(coord_t p, char c) {
     }
 }
 
+static void draw_line(pixel_t s0, pixel_t s1) {
+    int dx = s1.x - s0.x;
+    int dy = s1.y - s0.y;
+    int steps = MAX(abs(dx), abs(dy));
+    if (steps == 0) {
+        buffer_proj(s0, '.');
+        return;
+    }
+
+    for (int i = 0; i <= steps; i++) {
+        float t = (float)i / (float)steps;
+
+        pixel_t p = {
+            .x = (int)roundf(s0.x + t * dx),
+            .y = (int)roundf(s0.y + t * dy),
+            .ooz = s0.ooz + t * (s1.ooz - s0.ooz),
+            .cam_space = {
+                .x = s0.cam_space.x + t * (s1.cam_space.x - s0.cam_space.x),
+                .y = s0.cam_space.y + t * (s1.cam_space.y - s0.cam_space.y),
+                .z = s0.cam_space.z + t * (s1.cam_space.z - s0.cam_space.z)
+            }
+        };
+
+        float dist = sqrtf(p.cam_space.x*p.cam_space.x +
+                           p.cam_space.y*p.cam_space.y +
+                           p.cam_space.z*p.cam_space.z );
+
+        if (dist < 8) {
+            buffer_proj(p, '.');
+            buffer_proj((pixel_t){p.x+1, p.y, p.ooz, p.cam_space}, '.');
+        }
+    }
+}
+
+static void outline_block(camera_t *cam, veci_t block_pos) {
+    vecf_t rel = v_subf(vf(block_pos), cam->pos);
+    for (int f = 0; f < 6; f++) {
+        face_t face = ref_faces[f];
+        pixel_t pixels[4];
+        for (int i = 0; i < 4; i++) {
+            vecf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
+            vtx = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+            if (vtx.z < NEAR_PLANE)
+                return;
+            pixels[i] = screen_proj(vtx);
+        }
+        float area1 = edge(pixels[0], pixels[1], pixels[2]);
+        if (area1 <= 0) return;
+        float area2 = edge(pixels[0], pixels[2], pixels[3]);
+        if (area2 <= 0) return;
+
+        for (int i = 0; i < 4; i++) {
+            int j = (i+1) % 4;
+            pixel_t p0 = pixels[i];
+            p0.ooz += 0.01f;
+            pixel_t p1 = pixels[j];
+            p1.ooz += 0.01f;
+            draw_line(p0, p1);
+        }
+    }
+}
+
 static void render_poly(coord_t s0,  coord_t s1,  coord_t s2, int ignore_edge,
                         vector_t v0, vector_t v1, vector_t v2, vector_t norm) {
     int left   = MAX(0,      (int)floorf(MIN(s0.x, MIN(s1.x, s2.x))));
@@ -271,6 +333,13 @@ void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks) {
     }
 }
 
+void highlight_selection(camera_t *cam) {
+    if (cam->raycast.hit) {
+        veci_t block = cam->raycast.block;
+        outline_block(cam, block);
+    }
+}
+
 void draw_crosshair(void) {
     coord_t center = {WIDTH/2, HEIGHT/2, INFINITY};
     buffer_proj(center, '+');
@@ -281,3 +350,4 @@ void draw_crosshair(void) {
         buffer_proj(right, '>');
     }
 }
+

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-static int block_index(int x, int y, int z) {
+static int get_block_idx(int x, int y, int z) {
     if (x < 0 || CHUNK_X <= x || y < 0 || CHUNK_Y <= y || z < 0 || CHUNK_Z <= z)
         return -1;
     return y*CHUNK_Z*CHUNK_X + z*CHUNK_X + x;
@@ -16,10 +16,24 @@ static int block_index(int x, int y, int z) {
     // int x = i % CHUNK_X;
 // }
 
-int block_present(const chunk_t *chunk, int x, int y, int z) {
+int is_solid_in_chunk(const chunk_t chunk, int x, int y, int z) {
     int i = block_index(x, y, z);
     if (i == -1) return -1;
-    return (chunk->bits[i/8] >> (7 - (i % 8))) & 1;
+    return (chunk.bits[i/8] >> (7 - (i % 8))) & 1;
+}
+
+int is_solid_block(const chunk_t chunks[], veci_t world_pos) {
+    int x = (int)world_pos.x;
+    int y = (int)world_pos.y;
+    int z = (int)world_pos.z;
+    veci_t chunk_coord = {x/CHUNK_X, y/CHUNK_Y, z/CHUNK_Z}; // key
+    veci_t chunk_offset = {
+        .x = world_pos.x - chunk_coord.x,
+        .y = world_pos.y - chunk_coord.y,
+        .z = world_pos.z - chunk_coord.z
+    };
+    int chunk_idx = chunk_coord.y*4 + chunk_coord.z*2 + chunk_coord.x;
+    return is_solid_in_chunk(chunks[chunk_idx], chunk_offset);
 }
 
 void set_block(chunk_t *chunk, int x, int y, int z) {
