@@ -177,13 +177,13 @@ static pixel_t screen_proj(vecf_t cam_space) {
     float screen_x = (WIDTH/2.0f + 2.0f * f * cam_space.x * ooz);
     float screen_y = (HEIGHT/2.0f - f * cam_space.y * ooz);
 
-    return (pixel_t){round(screen_x), round(screen_y), ooz, cam_space};
+    return (pixel_t){(int)round(screen_x), (int)round(screen_y), ooz, cam_space};
 }
 
 static void buffer_proj(pixel_t p, char c) {
     if (0 <= p.x && p.x < WIDTH && 0 <= p.y && p.y < HEIGHT) {
         int idx = p.y * WIDTH + p.x;
-        if (p.ooz >= zbuff[idx]) {
+        if (p.ooz > zbuff[idx]) {
             zbuff[idx] = p.ooz;
             buff[idx] = c;
         }
@@ -252,7 +252,8 @@ void outline_block(camera_t *cam, veci_t block_pos) {
     }
 }
 
-static void render_poly(pixel_t p0,  pixel_t p1,  pixel_t p2, float area, face_dir_t dir) {
+static void render_poly(pixel_t p0,  pixel_t p1,  pixel_t p2,
+                        float area, face_dir_t dir) {
     int left   = MAX(0,        MIN(p0.x, MIN(p1.x, p2.x)));
     int right  = MIN(WIDTH,  MAX(p0.x, MAX(p1.x, p2.x)));
     int top    = MAX(0,        MIN(p0.y, MIN(p1.y, p2.y)));
@@ -278,8 +279,8 @@ static void render_poly(pixel_t p0,  pixel_t p1,  pixel_t p2, float area, face_d
                 p.ooz = a*p0.ooz + b*p1.ooz + c*p2.ooz;
                 p.cam_space = (vecf_t){
                     .x = a*p0.cam_space.x + b*p1.cam_space.x + c*p2.cam_space.x,
-                    .z = a*p0.cam_space.y + b*p1.cam_space.y + c*p2.cam_space.y,
-                    .y = a*p0.cam_space.z + b*p1.cam_space.z + c*p2.cam_space.z
+                    .y = a*p0.cam_space.y + b*p1.cam_space.y + c*p2.cam_space.y,
+                    .z = a*p0.cam_space.z + b*p1.cam_space.z + c*p2.cam_space.z
                 };
 
                 // float dist = sqrtf(cam_space.x*cam_space.x +
@@ -329,8 +330,8 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (is_solid_in_chunk(*chunk, (veci_t){x, y, z})) {
                     veci_t world = {x + coord.x*CHUNK_X,
-                                       y + coord.y*CHUNK_Y,
-                                       z + coord.z*CHUNK_Z};
+                                    y + coord.y*CHUNK_Y,
+                                    z + coord.z*CHUNK_Z};
                     render_block(cam, world);
                 }
             }
