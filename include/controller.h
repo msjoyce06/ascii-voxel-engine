@@ -7,12 +7,12 @@
 #include <stdbool.h>
 
 typedef enum {
-    NORTH,
-    SOUTH,
-    EAST,
     WEST,
-    TOP,
-    BOTTOM
+    EAST,
+    SOUTH,
+    NORTH,
+    BOTTOM,
+    TOP
 } face_dir_t;
 
 typedef struct {

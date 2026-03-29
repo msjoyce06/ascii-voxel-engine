@@ -25,8 +25,7 @@ static char *buff;
 static float *zbuff;
 static int bufflen;
 
-const float AREA_EPS = 1e-8f;
-const float EDGE_EPS = 1e-6f;
+const float EPS = 1e-8f;
 const float NEAR_PLANE = 0.001f;
 const float EDGE_WIDTH = 0.025f;
 
@@ -200,8 +199,8 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
         float t = (float)i / (float)steps;
 
         screen_vtx_t p = {
-            .x = (int)roundf(s0.x + t * dx),
-            .y = (int)roundf(s0.y + t * dy),
+            .x = s0.x + t * dx,
+            .y = s0.y + t * dy,
             .ooz = s0.ooz + t * (s1.ooz - s0.ooz),
             .cam_space = {
                 .x = s0.cam_space.x + t * (s1.cam_space.x - s0.cam_space.x),
@@ -210,21 +209,20 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
             }
         };
 
-        float dist = sqrtf(p.cam_space.x*p.cam_space.x +
-                           p.cam_space.y*p.cam_space.y +
-                           p.cam_space.z*p.cam_space.z );
+        // float dist = sqrtf(p.cam_space.x*p.cam_space.x +
+                           // p.cam_space.y*p.cam_space.y +
+                           // p.cam_space.z*p.cam_space.z );
 
-        if (dist < 8) {
-            buffer_proj(p, '.');
+        buffer_proj(p, '.');
+        if (WIDTH > 250)
             buffer_proj((screen_vtx_t){p.x+1, p.y, p.ooz, p.cam_space}, '.');
-        }
     }
 }
 
 static bool is_top_left(screen_vtx_t v1, screen_vtx_t v2) {
     float dx = v2.x - v1.x;
     float dy = v2.y - v1.y;
-    return (dy > EDGE_EPS) || (fabsf(dy) <= EDGE_EPS && dx < -EDGE_EPS);
+    return (dy > EPS) || (fabsf(dy) <= EPS && dx < -EPS);
 }
 
 static inline float edge(screen_vtx_t v1, screen_vtx_t v2, screen_vtx_t p) {
@@ -232,25 +230,38 @@ static inline float edge(screen_vtx_t v1, screen_vtx_t v2, screen_vtx_t p) {
 }
 
 static inline float snap_to_zero(float w) {
-    return (fabsf(w) < EDGE_EPS) ? 0 : w;
+    return (fabsf(w) < EPS) ? 0 : w;
 }
 
 void outline_block(camera_t *cam, veci_t block_pos) {
-    vecf_t rel = v_subf(vf(block_pos), cam->pos);
+
     for (int f = 0; f < 6; f++) {
         face_t face = ref_faces[f];
         screen_vtx_t pixels[4];
+
+        bool skip_face = false;
         for (int i = 0; i < 4; i++) {
-            vecf_t vtx = v_addf(ref_vtxs[face.idxs[i]], rel);
-            vtx = v_rotatef(vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
-            if (vtx.z < NEAR_PLANE)
-                return;
-            pixels[i] = screen_proj(vtx);
+            vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[face.idxs[i]]);
+            vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
+            cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
+                                         cam->cosp, cam->sinp);
+
+            if (cam_vtx.z < NEAR_PLANE) {
+                skip_face = true;
+                break;
+            }
+
+            pixels[i] = screen_proj(cam_vtx);
         }
+
+        if (skip_face)
+            continue;
+
         float area1 = edge(pixels[0], pixels[1], pixels[2]);
-        if (area1 <= 0) return;
         float area2 = edge(pixels[0], pixels[2], pixels[3]);
-        if (area2 <= 0) return;
+
+        if (area1 < EPS || area2 < EPS)
+            continue;
 
         for (int i = 0; i < 4; i++) {
             int j = (i+1) % 4;
@@ -270,7 +281,7 @@ static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
     int top    = MAX(0, (int)floorf(fminf(p0.y, fminf(p1.y, p2.y))));
     int bottom = MIN(HEIGHT, (int)ceilf(fmaxf(p0.y, fmaxf(p1.y, p2.y))));
 
-    if (fabsf(area) < AREA_EPS)
+    if (fabsf(area) < EPS)
         return;
 
     bool tl0 = is_top_left(p1, p2);
@@ -285,7 +296,6 @@ static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
             float w1 = snap_to_zero(edge(p2, p0, p));
             float w2 = snap_to_zero(edge(p0, p1, p));
 
-            // if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
             if ((w0 > 0 || (fabsf(w0) == 0 && tl0)) &&
                 (w1 > 0 || (fabsf(w1) == 0 && tl1)) &&
                 (w2 > 0 || (fabsf(w2) == 0 && tl2))) {
@@ -311,13 +321,14 @@ static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
     }
 }
 
-static void render_face(camera_t *cam, veci_t world, face_t face) {
+static void render_face(camera_t *cam, veci_t block_pos, face_t face) {
 
     screen_vtx_t pixels[4];
     for (int i = 0; i < 4; i++) {
-        vecf_t world_vtx = v_addf(vf(world), ref_vtxs[face.idxs[i]]);
-        vecf_t cam_vtx = v_subf(world_vtx, cam->pos);
-        cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint, cam->cosp, cam->sinp);
+        vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[face.idxs[i]]);
+        vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
+        cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
+                                     cam->cosp, cam->sinp);
 
         if (cam_vtx.z < NEAR_PLANE)
             return;
@@ -337,10 +348,10 @@ static void render_face(camera_t *cam, veci_t world, face_t face) {
     render_poly(pixels[0], pixels[2], pixels[3], area2, face.dir);
 }
 
-static void render_block(camera_t *cam, veci_t world) {
+static void render_block(camera_t *cam, veci_t block_pos) {
 
     for (int f = 0; f < 6; f++) {
-        render_face(cam, world, ref_faces[f]);
+        render_face(cam, block_pos, ref_faces[f]);
     }
 }
 
@@ -350,10 +361,10 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (is_solid_in_chunk(*chunk, (veci_t){x, y, z})) {
-                    veci_t world = {x + coord.x*CHUNK_X,
+                    veci_t block_pos = {x + coord.x*CHUNK_X,
                                     y + coord.y*CHUNK_Y,
                                     z + coord.z*CHUNK_Z};
-                    render_block(cam, world);
+                    render_block(cam, block_pos);
                 }
             }
         }

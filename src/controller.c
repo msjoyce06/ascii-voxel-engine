@@ -111,38 +111,48 @@ void raycast_block(camera_t *cam, const chunk_t chunks[]) {
     face_dir_t hit_face = NORTH; // placeholder
     bool hit = false;
 
-    if (dir.x > 0)
+    if (step_x > 0)
         side_x = ((float)(cell.x + 1) - start.x) * delta_x;
-    else
+    else if (step_x < 0)
         side_x = (start.x - (float)cell.x) * delta_x;
+    else
+        side_x = INFINITY;
 
-    if (dir.y > 0)
+    if (step_y > 0)
         side_y = ((float)(cell.y + 1) - start.y) * delta_y;
-    else
+    else if (step_y < 0)
         side_y = (start.y - (float)cell.y) * delta_y;
-
-    if (dir.z > 0)
-        side_z = ((float)(cell.z + 1) - start.z) * delta_z;
     else
-        side_z = (start.z - (float)cell.z) * delta_z;
+        side_y = INFINITY;
 
-    for (int i = 0; i < 5; i++) {
+    if (step_z > 0)
+        side_z = ((float)(cell.z + 1) - start.z) * delta_z;
+    else if (step_z < 0)
+        side_z = (start.z - (float)cell.z) * delta_z;
+    else
+        side_z = INFINITY;
+
+    float reach = 4.5f;
+    for (;;) {
         if (is_solid_block(chunks, cell)) {
             hit = true;
             break;
         }
 
         if (side_x < side_y && side_x < side_z) {
+            if (side_x > reach) break;
             cell.x += step_x;
             side_x += delta_x;
             hit_face = (step_x > 0) ? WEST : EAST;
         }
         else if (side_y < side_z) {
+            if (side_y > reach) break;
             cell.y += step_y;
             side_y += delta_y;
             hit_face = (step_y > 0) ? BOTTOM : TOP;
         }
         else {
+            if (side_z > reach) break;
             cell.z += step_z;
             side_z += delta_z;
             hit_face = (step_z > 0) ? SOUTH : NORTH;
@@ -154,21 +164,3 @@ void raycast_block(camera_t *cam, const chunk_t chunks[]) {
         cam->raycast.face = hit_face;
     }
 }
-
-// void raycast_block(camera_t *cam, chunk_t chunks[]) {
-    // vecf_t dir = {
-        // .x = cam->sint*cam->cosp,
-        // .y = cam->sinp,
-        // .z = cam->cost*cam->cosp
-    // };
-    // vecf_t ray = cam->pos;
-    // for (int i = 0; i < 5; i++) {
-        // if (block_present_world(ray, chunks)) {
-            // cam->raycast.hit = true;
-            // cam->raycast.block = (veci_t){(int)floorf(ray.x),
-                                          // (int)floorf(ray.y),
-                                          // (int)floorf(ray.z)};
-        // }
-        // ray = v_addf(ray, dir);
-    // }
-        // }

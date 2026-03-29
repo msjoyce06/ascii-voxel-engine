@@ -16,23 +16,43 @@ static int get_block_idx(int x, int y, int z) {
     // int x = i % CHUNK_X;
 // }
 
-int is_solid_in_chunk(const chunk_t chunk, veci_t chunk_offset) {
+bool is_solid_in_chunk(const chunk_t chunk, veci_t chunk_offset) {
     int i = get_block_idx(chunk_offset.x, chunk_offset.y, chunk_offset.z);
-    if (i == -1) return -1;
-    return (chunk.bits[i/8] >> (7 - (i % 8))) & 1;
+    if (i == -1) return false;
+    return (bool)((chunk.bits[i/8] >> (7 - (i % 8))) & 1);
 }
 
-int is_solid_block(const chunk_t chunks[], veci_t world_pos) {
-    int x = (int)world_pos.x;
-    int y = (int)world_pos.y;
-    int z = (int)world_pos.z;
-    veci_t chunk_coord = {x/CHUNK_X, y/CHUNK_Y, z/CHUNK_Z}; // key
-    veci_t chunk_offset = {
-        .x = world_pos.x - chunk_coord.x,
-        .y = world_pos.y - chunk_coord.y,
-        .z = world_pos.z - chunk_coord.z
+int floor_div(int a, int b) {
+    int q = a / b;
+    int r = a % b;
+    if (r != 0 && a < 0)
+        q--;
+    return q;
+}
+
+bool is_solid_block(const chunk_t chunks[], veci_t world_pos) {
+    int x = world_pos.x;
+    int y = world_pos.y;
+    int z = world_pos.z;
+    veci_t chunk_coord = {
+        .x = floor_div(x, CHUNK_X),
+        .y = floor_div(y, CHUNK_Y),
+        .z = floor_div(z, CHUNK_Z),
     };
-    int chunk_idx = chunk_coord.y*4 + chunk_coord.z*2 + chunk_coord.x;
+    veci_t chunk_offset = {
+        .x = x - chunk_coord.x * CHUNK_X,
+        .y = y - chunk_coord.y * CHUNK_Y,
+        .z = z - chunk_coord.z * CHUNK_Z
+    };
+
+    int cx = chunk_coord.x + 1;
+    int cy = chunk_coord.y + 1;
+    int cz = chunk_coord.z + 1;
+
+    if (cx < 0 || cx >= 2 || cy < 0 || cy >= 2 || cz < 0 || cz >= 2)
+        return 0;
+
+    int chunk_idx = cy*4 + cz*2 + cx;
     return is_solid_in_chunk(chunks[chunk_idx], chunk_offset);
 }
 
