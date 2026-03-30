@@ -103,8 +103,8 @@ void free_buffs(void) {
 
 /** rendering */
 static char get_shade_char(face_dir_t face, float dist) {
-    int levels;
     char *ramp;
+    int levels;
     if (WIDTH < 250) {
         ramp = " .+?l$%@";
         levels = 8;
