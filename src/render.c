@@ -26,14 +26,18 @@ static float *zbuff;
 static int bufflen;
 
 const float EPS = 1e-8f;
-const float NEAR_PLANE = 0.001f;
-const float EDGE_WIDTH = 0.025f;
+const float OUTLINE_PAD = 0.003f;
+const float NEAR_PLANE = 1e-6f;
 
 static vecf_t ref_vtxs[8] = {
-    {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
-    {1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
-    {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f},
-    {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}
+    {0.0f, 0.0f, 0.0f},
+    {1.0f, 0.0f, 0.0f},
+    {1.0f, 1.0f, 0.0f},
+    {0.0f, 1.0f, 0.0f},
+    {0.0f, 0.0f, 1.0f},
+    {1.0f, 0.0f, 1.0f},
+    {1.0f, 1.0f, 1.0f},
+    {0.0f, 1.0f, 1.0f}
 };
 
 static face_t ref_faces[6] = {
@@ -98,72 +102,43 @@ void free_buffs(void) {
 }
 
 /** rendering */
-// static int should_draw_edge(screen_vtx_t s0, screen_vtx_t s1, vecf_t v0, vecf_t v1) {
-    // float dx = fabsf(s1.x - s0.x);
-    // float dy = fabsf(s1.y - s0.y);
-    // float dist = sqrtf(v0.x*v1.x + v0.y*v1.y + v0.z*v1.z);
-
-    // if (dist > 8.0f && dy < 0.1f*dx)
-        // return 0;
-    // return 1;
-// }
-
-// static char get_shade_char(vecf_t norm, float dist) {
-    // int levels;
-    // char *ramp;
-    // if (WIDTH < 250) {
-        // ramp = " -+?l$%@";
-        // levels = 8;
-    // } else {
-        // ramp = " -:+!?ilJ$KX%0#@";
-        // levels = 16;
-    // }
-    // float base_shade;
-
-    // if (norm.y == 1.0f)       // top
-        // base_shade = 1.1f;
-    // else if (norm.z == -1.0f) // south
-        // base_shade = 0.8f;
-    // else if (norm.x == -1.0f) // west
-        // base_shade = 0.65f;
-    // else if (norm.z == 1.0f)  // north
-        // base_shade = 0.55f;
-    // else if (norm.x == 1.0f)  // east
-        // base_shade = 0.45f;
-    // else                      // bottom
-        // base_shade = 0.25f;
-
-    // float near = 0.5f;
-    // float far = 18.0f;
-    // float d = 1.0f - (dist - near) / (far - near);
-    // if (d < 0.0f) d = 0.0f;
-    // if (d > 1.0f) d = 1.0f;
-
-    // float brightness = base_shade * d;
-    // int idx = (int)(brightness * (levels - 1) + 0.5f);
-    // if (idx < 0) idx = 0;
-    // if (idx > levels - 1) idx = levels - 1;
-
-    // return ramp[idx];
-// }
-
-static char get_shade_char(face_dir_t dir) {
-    switch (dir) {
-        case NORTH:
-            return '$';
-        case EAST:
-            return '?';
-        case SOUTH:
-            return '$';
-        case WEST:
-            return '?';
-        case TOP:
-            return '@';
-        case BOTTOM:
-            return '+';
-        default:
-            return ' ';
+static char get_shade_char(face_dir_t face, float dist) {
+    int levels;
+    char *ramp;
+    if (WIDTH < 250) {
+        ramp = " -+?l$%@";
+        levels = 8;
+    } else {
+        ramp = " .:+!?ilJ$KX%0#@";
+        levels = 16;
     }
+    float base_shade;
+
+    if (face == TOP)
+        base_shade = 1.0f;
+    else if (face == SOUTH)
+        base_shade = 0.6f;
+    else if (face == WEST)
+        base_shade = 0.5f;
+    else if (face == NORTH)
+        base_shade = 0.6f;
+    else if (face == EAST)
+        base_shade = 0.5f;
+    else  // face ==  BOTTOM
+        base_shade = 0.3f;
+
+    float near = 0.5f;
+    float far = 18.0f;
+    float d = 1.0f - (dist - near) / (far - near);
+    if (d < 0.0f) d = 0.0f;
+    if (d > 1.0f) d = 1.0f;
+
+    float brightness = base_shade * d;
+    int idx = (int)(brightness * (levels - 1) + 0.5f);
+    if (idx < 0) idx = 0;
+    if (idx > levels - 1) idx = levels - 1;
+
+    return ramp[idx];
 }
 
 static screen_vtx_t screen_proj(vecf_t cam_space) {
@@ -187,9 +162,9 @@ static void buffer_proj(screen_vtx_t p, char c) {
 }
 
 static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
-    int dx = s1.x - s0.x;
-    int dy = s1.y - s0.y;
-    int steps = MAX(abs(dx), abs(dy));
+    float dx = s1.x - s0.x;
+    float dy = s1.y - s0.y;
+    int steps = (int)ceilf(fmaxf(fabsf(dx), fabsf(dy)));
     if (steps == 0) {
         buffer_proj(s0, '.');
         return;
@@ -201,17 +176,13 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
         screen_vtx_t p = {
             .x = s0.x + t * dx,
             .y = s0.y + t * dy,
-            .ooz = s0.ooz + t * (s1.ooz - s0.ooz),
+            .ooz = s0.ooz + t * (s1.ooz - s0.ooz) + 0.01f,
             .cam_space = {
                 .x = s0.cam_space.x + t * (s1.cam_space.x - s0.cam_space.x),
                 .y = s0.cam_space.y + t * (s1.cam_space.y - s0.cam_space.y),
                 .z = s0.cam_space.z + t * (s1.cam_space.z - s0.cam_space.z)
             }
         };
-
-        // float dist = sqrtf(p.cam_space.x*p.cam_space.x +
-                           // p.cam_space.y*p.cam_space.y +
-                           // p.cam_space.z*p.cam_space.z );
 
         buffer_proj(p, '.');
         if (WIDTH > 250)
@@ -235,43 +206,33 @@ static inline float snap_to_zero(float w) {
 
 void outline_block(camera_t *cam, veci_t block_pos) {
 
-    for (int f = 0; f < 6; f++) {
-        face_t face = ref_faces[f];
-        screen_vtx_t pixels[4];
+    screen_vtx_t screen_vtxs[8];
+    for (int v = 0; v < 8; v++) {
+        vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[v]);
+        vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
+        cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
+                                     cam->cosp, cam->sinp);
+        if (cam_vtx.z < NEAR_PLANE)
+            return;
 
-        bool skip_face = false;
-        for (int i = 0; i < 4; i++) {
-            vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[face.idxs[i]]);
-            vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
-            cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
-                                         cam->cosp, cam->sinp);
-
-            if (cam_vtx.z < NEAR_PLANE) {
-                skip_face = true;
-                break;
-            }
-
-            pixels[i] = screen_proj(cam_vtx);
-        }
-
-        if (skip_face)
-            continue;
-
-        float area1 = edge(pixels[0], pixels[1], pixels[2]);
-        float area2 = edge(pixels[0], pixels[2], pixels[3]);
-
-        if (area1 < EPS || area2 < EPS)
-            continue;
-
-        for (int i = 0; i < 4; i++) {
-            int j = (i+1) % 4;
-            screen_vtx_t p0 = pixels[i];
-            p0.ooz += 0.01f;
-            screen_vtx_t p1 = pixels[j];
-            p1.ooz += 0.01f;
-            draw_line(p0, p1);
-        }
+        screen_vtxs[v] = screen_proj(cam_vtx);
     }
+
+    // front face
+    draw_line(screen_vtxs[0], screen_vtxs[1]);
+    draw_line(screen_vtxs[1], screen_vtxs[2]);
+    draw_line(screen_vtxs[2], screen_vtxs[3]);
+    draw_line(screen_vtxs[3], screen_vtxs[0]);
+    // back face
+    draw_line(screen_vtxs[4], screen_vtxs[5]);
+    draw_line(screen_vtxs[5], screen_vtxs[6]);
+    draw_line(screen_vtxs[6], screen_vtxs[7]);
+    draw_line(screen_vtxs[7], screen_vtxs[4]);
+    // connecting edges
+    draw_line(screen_vtxs[0], screen_vtxs[4]);
+    draw_line(screen_vtxs[1], screen_vtxs[5]);
+    draw_line(screen_vtxs[2], screen_vtxs[6]);
+    draw_line(screen_vtxs[3], screen_vtxs[7]);
 }
 
 static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
@@ -311,11 +272,11 @@ static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
                     .z = a*p0.cam_space.z + b*p1.cam_space.z + c*p2.cam_space.z
                 };
 
-                // float dist = sqrtf(cam_space.x*cam_space.x +
-                                   // cam_space.y*cam_space.y +
-                                   // cam_space.z*cam_space.z );
+                float dist = sqrtf(p.cam_space.x * p.cam_space.x +
+                                   p.cam_space.y * p.cam_space.y +
+                                   p.cam_space.z * p.cam_space.z );
 
-                buffer_proj(p, get_shade_char(dir));
+                buffer_proj(p, get_shade_char(dir, dist));
             }
         }
     }

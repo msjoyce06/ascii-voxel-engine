@@ -45,6 +45,7 @@ int main(int argc, char *argv[]) {
 
     set_block(&chunks[6], 14, 0, 2);
     set_block(&chunks[7], 1, 0, 2);
+    set_block(&chunks[7], 1, 1, 2);
 
     while (running) {
         set_buffs();
