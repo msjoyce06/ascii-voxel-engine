@@ -321,7 +321,7 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
     for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
-                if (is_solid_in_chunk(*chunk, (veci_t){x, y, z})) {
+                if (is_solid_in_chunk(chunk, (veci_t){x, y, z})) {
                     veci_t block_pos = {x + coord.x*CHUNK_X,
                                     y + coord.y*CHUNK_Y,
                                     z + coord.z*CHUNK_Z};
@@ -351,6 +351,7 @@ void draw_crosshair(void) {
     if (WIDTH > 250) {
         screen_vtx_t left = {.x = center.x-1, .y = center.y, .ooz = INFINITY};
         screen_vtx_t right = {.x = center.x+1, .y = center.y, .ooz = INFINITY};
+
         buffer_proj(left, '<');
         buffer_proj(right, '>');
     }

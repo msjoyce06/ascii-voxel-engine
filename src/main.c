@@ -35,22 +35,27 @@ int main(int argc, char *argv[]) {
     load_chunks(chunks, 1);
 
     // set floor
-    for (int i = 0; i < 4; i++) {
-        for (int x = 0; x < CHUNK_X; x++) {
-            for (int z = 0; z < CHUNK_Z; z++) {
-                set_block(&chunks[i], x, 15, z);
-            }
+    // for (int i = 0; i < 4; i++) {
+        // for (int x = 0; x < CHUNK_X; x++) {
+            // for (int z = 0; z < CHUNK_Z; z++) {
+                // set_block(&chunks[i], x, 15, z);
+            // }
+        // }
+    // }
+    for (int x = -16; x < 16; x++) {
+        for (int z = -16; z < 16; z++) {
+            set_block(chunks, (veci_t){x, -1, z});
         }
     }
 
-    set_block(&chunks[6], 14, 0, 2);
-    set_block(&chunks[7], 1, 0, 2);
-    set_block(&chunks[7], 1, 1, 2);
+    set_block(chunks, (veci_t){-2, 0, 2});
+    set_block(chunks, (veci_t){1, 0, 2});
+    set_block(chunks, (veci_t){1, 1, 2});
 
     while (running) {
         set_buffs();
 
-        update_cam(&cam);
+        update_cam(&cam, chunks);
 
         render_chunks(&cam, chunks, NUM_CHUNKS);
         raycast_block(&cam, chunks);

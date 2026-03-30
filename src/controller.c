@@ -49,25 +49,45 @@ static void update_trig(camera_t *cam) {
     cam->sinp = sinf(phi_r);
 }
 
-void update_cam(camera_t *cam) {
+static veci_t get_adjacent_block(camera_t *cam) {
+    veci_t block = cam->raycast.block;
+    switch (cam->raycast.face) {
+        case WEST:
+            return (veci_t){block.x-1, block.y, block.z};
+        case EAST:
+            return (veci_t){block.x+1, block.y, block.z};
+        case SOUTH:
+            return (veci_t){block.x, block.y, block.z-1};
+        case NORTH:
+            return (veci_t){block.x, block.y, block.z+1};
+        case BOTTOM:
+            return (veci_t){block.x, block.y-1, block.z};
+        default:
+            return (veci_t){block.x, block.y+1, block.z};
+    }
+}
+
+void update_cam(camera_t *cam, chunk_t chunks[]) {
     int key = read_key();
     if (key != -1) {
         switch (key) {
+            // movement
             case 'h':
             case 'j':
             case 'k':
-            case 'l': {
+            case 'l':
                 if (key == 'h') cam->theta -= 5;
                 if (key == 'j') cam->phi -= 5;
                 if (key == 'k') cam->phi += 5;
                 if (key == 'l') cam->theta += 5;
                 update_trig(cam);
                 break;
-            }
+
+            // camera
             case 'w':
             case 'a':
             case 's':
-            case 'd': {
+            case 'd':
                 vecf_t forward = {0, 0, 0.12f};
                 forward = v_rotatef(forward, cam->cost, -cam->sint, 1, 0);
                 vecf_t right = {0.12f, 0, 0};
@@ -77,7 +97,18 @@ void update_cam(camera_t *cam) {
                 if (key == 's') cam->pos = v_subf(cam->pos, forward);
                 if (key == 'd') cam->pos = v_addf(cam->pos, right);
                 break;
-            }
+
+            // blocks
+            case 'u':
+                if (cam->raycast.hit)
+                    clear_block(chunks, cam->raycast.block);
+                break;
+            case 'i':
+                if (cam->raycast.hit) {
+                    veci_t block = get_adjacent_block(cam);
+                    set_block(chunks, block);
+                }
+                break;
         }
         if (cam->phi > 89.0f) cam->phi = 89.0f;
         if (cam->phi < -89.0f) cam->phi = -89.0f;
@@ -138,7 +169,6 @@ void raycast_block(camera_t *cam, const chunk_t chunks[]) {
             hit = true;
             break;
         }
-
         if (side_x < side_y && side_x < side_z) {
             if (side_x > reach) break;
             cell.x += step_x;

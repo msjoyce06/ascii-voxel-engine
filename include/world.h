@@ -16,11 +16,11 @@ typedef struct {
     uint8_t bits[CHUNK_BYTES];
 } chunk_t;
 
-bool is_solid_in_chunk(const chunk_t chunk, veci_t chunk_offset);
-bool is_solid_block(const chunk_t chunks[], veci_t world_pos);
+bool is_solid_in_chunk(const chunk_t *chunk, veci_t chunk_offset);
+bool is_solid_block(const chunk_t chunks[], veci_t block);
 
-void set_block(chunk_t *chunk, int x, int y, int z);
-void clear_block(chunk_t *chunk, int x, int y, int z);
+void set_block(chunk_t chunks[], veci_t block);
+void clear_block(chunk_t chunks[], veci_t block);
 
 void load_chunks(chunk_t chunks[], int render_dist);
 
