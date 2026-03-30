@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     while (running) {
         set_buffs();
 
-        update_cam(&cam, chunks);
+        update(&cam, chunks);
 
         render_chunks(&cam, chunks, NUM_CHUNKS);
         raycast_block(&cam, chunks);

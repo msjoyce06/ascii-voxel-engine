@@ -67,38 +67,45 @@ static veci_t get_adjacent_block(camera_t *cam) {
     }
 }
 
-void update_cam(camera_t *cam, chunk_t chunks[]) {
+void update(camera_t *cam, chunk_t chunks[]) {
     int key = read_key();
     if (key != -1) {
         switch (key) {
-            // movement
+            // camera
             case 'h':
             case 'j':
             case 'k':
             case 'l':
-                if (key == 'h') cam->theta -= 5;
-                if (key == 'j') cam->phi -= 5;
-                if (key == 'k') cam->phi += 5;
-                if (key == 'l') cam->theta += 5;
+                if (key == 'h') cam->theta -= 8;
+                if (key == 'j') cam->phi -= 4;
+                if (key == 'k') cam->phi += 4;
+                if (key == 'l') cam->theta += 8;
                 update_trig(cam);
                 break;
 
-            // camera
+            // movement
             case 'w':
             case 'a':
             case 's':
             case 'd':
-                vecf_t forward = {0, 0, 0.12f};
+                vecf_t forward = {0, 0, 0.15f};
                 forward = v_rotatef(forward, cam->cost, -cam->sint, 1, 0);
-                vecf_t right = {0.12f, 0, 0};
+                vecf_t right = {0.15f, 0, 0};
                 right = v_rotatef(right, cam->cost, -cam->sint, 1, 0);
                 if (key == 'w') cam->pos = v_addf(cam->pos, forward);
                 if (key == 'a') cam->pos = v_subf(cam->pos, right);
                 if (key == 's') cam->pos = v_subf(cam->pos, forward);
                 if (key == 'd') cam->pos = v_addf(cam->pos, right);
                 break;
+            case ' ':
+                cam->pos = v_addf(cam->pos, (vecf_t){0, 0.15f, 0});
+                break;
+            case 'z':
+            case 'c':
+                cam->pos = v_subf(cam->pos, (vecf_t){0, 0.15f, 0});
+                break;
 
-            // blocks
+            // placing/destroying blocks
             case 'u':
                 if (cam->raycast.hit)
                     clear_block(chunks, cam->raycast.block);
