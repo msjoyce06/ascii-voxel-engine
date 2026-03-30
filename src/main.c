@@ -35,13 +35,6 @@ int main(int argc, char *argv[]) {
     load_chunks(chunks, 1);
 
     // set floor
-    // for (int i = 0; i < 4; i++) {
-        // for (int x = 0; x < CHUNK_X; x++) {
-            // for (int z = 0; z < CHUNK_Z; z++) {
-                // set_block(&chunks[i], x, 15, z);
-            // }
-        // }
-    // }
     for (int x = -16; x < 16; x++) {
         for (int z = -16; z < 16; z++) {
             set_block(chunks, (veci_t){x, -1, z});

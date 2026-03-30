@@ -76,10 +76,10 @@ void update(camera_t *cam, chunk_t chunks[]) {
             case 'j':
             case 'k':
             case 'l':
-                if (key == 'h') cam->theta -= 8;
+                if (key == 'h') cam->theta -= 7.5f;
                 if (key == 'j') cam->phi -= 4;
                 if (key == 'k') cam->phi += 4;
-                if (key == 'l') cam->theta += 8;
+                if (key == 'l') cam->theta += 7.5f;
                 update_trig(cam);
                 break;
 
@@ -117,8 +117,8 @@ void update(camera_t *cam, chunk_t chunks[]) {
                 }
                 break;
         }
-        if (cam->phi > 89.0f) cam->phi = 89.0f;
-        if (cam->phi < -89.0f) cam->phi = -89.0f;
+        if (cam->phi > 90.0f) cam->phi = 90.0f;
+        if (cam->phi < -90.0f) cam->phi = -90.0f;
     }
 }
 
