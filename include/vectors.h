@@ -2,19 +2,25 @@
 #define VECTORS_H
 
 typedef struct {
+    int x;
+    int y;
+    int z;
+} veci_t;
+
+typedef struct {
     float x;
     float y;
     float z;
-} vector_t;
+} vecf_t;
 
-vector_t v_add(vector_t v1, vector_t v2);
+vecf_t vf(veci_t vi);
+veci_t vi(vecf_t vf);
 
-vector_t v_sub(vector_t v1, vector_t v2);
+vecf_t v_addf(vecf_t v1, vecf_t v2);
+vecf_t v_subf(vecf_t v1, vecf_t v2);
 
-float v_dot(vector_t v1, vector_t v2);
+float v_dotf(vecf_t v1, vecf_t v2);
 
-// float v_dist(vector_t v1, vector_t v2);
-
-vector_t v_rotate(vector_t v, float cost, float sint, float cosp, float sinp);
+vecf_t v_rotatef(vecf_t v, float cost, float sint, float cosp, float sinp);
 
 #endif

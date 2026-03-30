@@ -1,9 +1,11 @@
 #include "controller.h"
+#include "render.h"
 #include <termios.h>
 #include <unistd.h>
 #include <math.h>
 
 static struct termios oldt;
+extern volatile sig_atomic_t running;
 
 /** signal interrupt */
 void handle_sigint(int sig) {
@@ -47,11 +49,6 @@ static void update_trig(camera_t *cam) {
     cam->sinp = sinf(phi_r);
 }
 
-// static void get_axes(const camera_t *cam, vector_t *x_axis, vector_t *z_axis) {
-    // *x_axis = v_rotate(x_axis, cam->cost, 1, -(cam->sint), 0);
-    // *z_axis = v_rotate(z_axis, cam->cost, 1, -(cam->sint), 0);
-// }
-
 void update_cam(camera_t *cam) {
     int key = read_key();
     if (key != -1) {
@@ -71,18 +68,99 @@ void update_cam(camera_t *cam) {
             case 'a':
             case 's':
             case 'd': {
-                vector_t forward = {0, 0, 0.12f};
-                forward = v_rotate(forward, cam->cost, -cam->sint, 1, 0);
-                vector_t right = {0.12f, 0, 0};
-                right = v_rotate(right, cam->cost, -cam->sint, 1, 0);
-                if (key == 'w') cam->pos = v_add(cam->pos, forward);
-                if (key == 'a') cam->pos = v_sub(cam->pos, right);
-                if (key == 's') cam->pos = v_sub(cam->pos, forward);
-                if (key == 'd') cam->pos = v_add(cam->pos, right);
+                vecf_t forward = {0, 0, 0.12f};
+                forward = v_rotatef(forward, cam->cost, -cam->sint, 1, 0);
+                vecf_t right = {0.12f, 0, 0};
+                right = v_rotatef(right, cam->cost, -cam->sint, 1, 0);
+                if (key == 'w') cam->pos = v_addf(cam->pos, forward);
+                if (key == 'a') cam->pos = v_subf(cam->pos, right);
+                if (key == 's') cam->pos = v_subf(cam->pos, forward);
+                if (key == 'd') cam->pos = v_addf(cam->pos, right);
                 break;
             }
         }
         if (cam->phi > 89.0f) cam->phi = 89.0f;
         if (cam->phi < -89.0f) cam->phi = -89.0f;
+    }
+}
+
+void raycast_block(camera_t *cam, const chunk_t chunks[]) {
+    vecf_t start = cam->pos;
+
+    vecf_t dir = {
+        .x = cam->sint * cam->cosp,
+        .y = cam->sinp,
+        .z = cam->cost * cam->cosp
+    };
+
+    veci_t cell = {
+        .x = (int)floorf(cam->pos.x),
+        .y = (int)floorf(cam->pos.y),
+        .z = (int)floorf(cam->pos.z),
+    };
+
+    int step_x = (dir.x > 0) ? 1 : (dir.x < 0) ? -1 : 0;
+    int step_y = (dir.y > 0) ? 1 : (dir.y < 0) ? -1 : 0;
+    int step_z = (dir.z > 0) ? 1 : (dir.z < 0) ? -1 : 0;
+
+    float delta_x = (dir.x != 0.0f) ? fabsf(1.0f / dir.x) : INFINITY;
+    float delta_y = (dir.y != 0.0f) ? fabsf(1.0f / dir.y) : INFINITY;
+    float delta_z = (dir.z != 0.0f) ? fabsf(1.0f / dir.z) : INFINITY;
+
+    float side_x, side_y, side_z;
+    face_dir_t hit_face = NORTH; // placeholder
+    bool hit = false;
+
+    if (step_x > 0)
+        side_x = ((float)(cell.x + 1) - start.x) * delta_x;
+    else if (step_x < 0)
+        side_x = (start.x - (float)cell.x) * delta_x;
+    else
+        side_x = INFINITY;
+
+    if (step_y > 0)
+        side_y = ((float)(cell.y + 1) - start.y) * delta_y;
+    else if (step_y < 0)
+        side_y = (start.y - (float)cell.y) * delta_y;
+    else
+        side_y = INFINITY;
+
+    if (step_z > 0)
+        side_z = ((float)(cell.z + 1) - start.z) * delta_z;
+    else if (step_z < 0)
+        side_z = (start.z - (float)cell.z) * delta_z;
+    else
+        side_z = INFINITY;
+
+    float reach = 4.5f;
+    for (;;) {
+        if (is_solid_block(chunks, cell)) {
+            hit = true;
+            break;
+        }
+
+        if (side_x < side_y && side_x < side_z) {
+            if (side_x > reach) break;
+            cell.x += step_x;
+            side_x += delta_x;
+            hit_face = (step_x > 0) ? WEST : EAST;
+        }
+        else if (side_y < side_z) {
+            if (side_y > reach) break;
+            cell.y += step_y;
+            side_y += delta_y;
+            hit_face = (step_y > 0) ? BOTTOM : TOP;
+        }
+        else {
+            if (side_z > reach) break;
+            cell.z += step_z;
+            side_z += delta_z;
+            hit_face = (step_z > 0) ? SOUTH : NORTH;
+        }
+    }
+    cam->raycast.hit = hit;
+    if (hit) {
+        cam->raycast.block = cell;
+        cam->raycast.face = hit_face;
     }
 }
