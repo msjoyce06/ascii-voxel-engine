@@ -16,6 +16,8 @@ typedef struct {
     uint8_t bits[CHUNK_BYTES];
 } chunk_t;
 
+veci_t get_chunk_offset(veci_t block);
+
 bool is_solid_in_chunk(const chunk_t *chunk, veci_t chunk_offset);
 bool is_solid_block(const chunk_t chunks[], veci_t block);
 

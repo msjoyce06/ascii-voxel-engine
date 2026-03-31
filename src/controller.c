@@ -38,7 +38,7 @@ static int read_key(void) {
     return -1;
 }
 
-/** update */
+/** helpers */
 static void update_trig(camera_t *cam) {
     float theta_r = cam->theta * M_PI / 180;
     float phi_r = cam->phi * M_PI / 180;
@@ -49,9 +49,8 @@ static void update_trig(camera_t *cam) {
     cam->sinp = sinf(phi_r);
 }
 
-static veci_t get_adjacent_block(camera_t *cam) {
-    veci_t block = cam->raycast.block;
-    switch (cam->raycast.face) {
+veci_t get_adjacent_block(veci_t block, face_dir_t dir) {
+    switch (dir) {
         case WEST:
             return (veci_t){block.x-1, block.y, block.z};
         case EAST:
@@ -67,6 +66,7 @@ static veci_t get_adjacent_block(camera_t *cam) {
     }
 }
 
+/** update */
 void update(camera_t *cam, chunk_t chunks[]) {
     int key = read_key();
     if (key != -1) {
@@ -107,12 +107,14 @@ void update(camera_t *cam, chunk_t chunks[]) {
 
             // placing/destroying blocks
             case 'u':
-                if (cam->raycast.hit)
+                if (cam->raycast.hit) {
                     clear_block(chunks, cam->raycast.block);
+                }
                 break;
             case 'i':
                 if (cam->raycast.hit) {
-                    veci_t block = get_adjacent_block(cam);
+                    veci_t block = get_adjacent_block(cam->raycast.block,
+                                                      cam->raycast.face);
                     set_block(chunks, block);
                 }
                 break;

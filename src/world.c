@@ -25,7 +25,7 @@ static veci_t get_chunk_coord(veci_t block) {
     };
 }
 
-static veci_t get_chunk_offset(veci_t block) {
+veci_t get_chunk_offset(veci_t block) {
     veci_t offset = {
         .x = block.x % CHUNK_X,
         .y = block.y % CHUNK_Y,

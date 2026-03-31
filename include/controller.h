@@ -36,6 +36,9 @@ void handle_sigint(int sig);
 void enable_raw_mode(void);
 void disable_raw_mode(void);
 
+/** helpers */
+veci_t get_adjacent_block(veci_t block, face_dir_t dir);
+
 /** update */
 void update(camera_t *cam, chunk_t chunks[]);
 void raycast_block(camera_t *cam, const chunk_t chunks[]);

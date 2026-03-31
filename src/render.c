@@ -204,12 +204,12 @@ static inline float snap_to_zero(float w) {
     return (fabsf(w) < EPS) ? 0 : w;
 }
 
-void outline_block(camera_t *cam, veci_t block_pos) {
+void outline_block(camera_t *cam, veci_t block) {
 
     screen_vtx_t screen_vtxs[8];
     for (int v = 0; v < 8; v++) {
-        vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[v]);
-        vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
+        vecf_t block_vtx = v_addf(vf(block), ref_vtxs[v]);
+        vecf_t cam_vtx = v_subf(block_vtx, cam->pos);
         cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
                                      cam->cosp, cam->sinp);
         if (cam_vtx.z < NEAR_PLANE)
@@ -282,12 +282,12 @@ static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
     }
 }
 
-static void render_face(camera_t *cam, veci_t block_pos, face_t face) {
+static void render_face(camera_t *cam, veci_t block, face_t face) {
 
     screen_vtx_t pixels[4];
     for (int i = 0; i < 4; i++) {
-        vecf_t block_pos_vtx = v_addf(vf(block_pos), ref_vtxs[face.idxs[i]]);
-        vecf_t cam_vtx = v_subf(block_pos_vtx, cam->pos);
+        vecf_t block_vtx = v_addf(vf(block), ref_vtxs[face.idxs[i]]);
+        vecf_t cam_vtx = v_subf(block_vtx, cam->pos);
         cam_vtx = v_rotatef(cam_vtx, cam->cost, cam->sint,
                                      cam->cosp, cam->sinp);
 
@@ -309,10 +309,11 @@ static void render_face(camera_t *cam, veci_t block_pos, face_t face) {
     render_poly(pixels[0], pixels[2], pixels[3], area2, face.dir);
 }
 
-static void render_block(camera_t *cam, veci_t block_pos) {
-
-    for (int f = 0; f < 6; f++) {
-        render_face(cam, block_pos, ref_faces[f]);
+static void render_block(camera_t *cam, const chunk_t *chunk, veci_t block) {
+    for (int dir = 0; dir < 6; dir++) {
+        veci_t adjacent = get_adjacent_block(block, dir);
+        if (!is_solid_in_chunk(chunk, get_chunk_offset(adjacent)))
+            render_face(cam, block, ref_faces[dir]);
     }
 }
 
@@ -322,10 +323,10 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (is_solid_in_chunk(chunk, (veci_t){x, y, z})) {
-                    veci_t block_pos = {x + coord.x*CHUNK_X,
+                    veci_t block = {x + coord.x*CHUNK_X,
                                     y + coord.y*CHUNK_Y,
                                     z + coord.z*CHUNK_Z};
-                    render_block(cam, block_pos);
+                    render_block(cam, chunk, block);
                 }
             }
         }
