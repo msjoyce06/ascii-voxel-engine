@@ -69,7 +69,10 @@ void to_top_left(void) {
 void print_frame(void) {
     to_top_left();
     for (int i = 0; i < bufflen; i++) {
-        putchar(buff[i]);
+        if (buff[i] == '-')
+            fputs("—", stdout);
+        else
+            putchar(buff[i]);
         if (i % WIDTH == WIDTH-1 && i != bufflen-1)
             printf("\n");
     }
@@ -168,13 +171,15 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1, char c) {
 
     float slope = (dx != 0) ? dy/dx : INFINITY;
     if (c == '_') {
-        if (slope > tanf(0.375f*M_PI) || slope < tanf(-0.375f*M_PI))
+        float a = tanf(22.5f * M_PI / 180.0f);
+        float b = tanf(66.5f * M_PI / 180.0f);
+        if (slope > b || slope < -b)
             c = '|';
-        else if (slope > tanf(0.125f*M_PI))
+        else if (slope > a)
             c = '\\';
-        else if (slope > tanf(-0.125f*M_PI))
+        else if (slope > -a)
             c = '-';
-        else if (slope > tanf(-0.375*M_PI))
+        else if (slope > -b)
             c = '/';
     }
 
@@ -193,8 +198,8 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1, char c) {
         };
 
         buffer_proj(p, c);
-        // if (WIDTH > 250)
-            // buffer_proj((screen_vtx_t){p.x+1, p.y, p.ooz, p.cam_space}, c);
+        if (WIDTH > 250 && c == '.')
+            buffer_proj((screen_vtx_t){p.x+1, p.y, p.ooz, p.cam_space}, c);
     }
 }
 
