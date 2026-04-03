@@ -52,6 +52,9 @@ int main(int argc, char *argv[]) {
 
         render_chunks(&cam, chunks, NUM_CHUNKS);
         raycast_block(&cam, chunks);
+        outline_block(&cam, (veci_t){-2, 0, 2}, '_');
+        outline_block(&cam, (veci_t){1, 0, 2}, '_');
+        outline_block(&cam, (veci_t){1, 1, 2}, '_');
         highlight_selection(&cam);
         draw_crosshair();
 

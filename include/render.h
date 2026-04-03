@@ -21,7 +21,7 @@ void free_buffs(void);
 
 /** rendering */
 void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks);
-void outline_block(camera_t *cam, veci_t block_pos);
+void outline_block(camera_t *cam, veci_t block_pos, char c);
 void highlight_selection(camera_t *cam);
 void draw_crosshair(void);
 

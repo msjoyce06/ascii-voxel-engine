@@ -161,13 +161,21 @@ static void buffer_proj(screen_vtx_t p, char c) {
     }
 }
 
-static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
+static void draw_line(screen_vtx_t s0, screen_vtx_t s1, char c) {
     float dx = s1.x - s0.x;
     float dy = s1.y - s0.y;
     int steps = (int)ceilf(fmaxf(fabsf(dx), fabsf(dy)));
-    if (steps == 0) {
-        buffer_proj(s0, '.');
-        return;
+
+    float slope = (dx != 0) ? dy/dx : INFINITY;
+    if (c == '_') {
+        if (slope > tanf(0.375f*M_PI) || slope < tanf(-0.375f*M_PI))
+            c = '|';
+        else if (slope > tanf(0.125f*M_PI))
+            c = '\\';
+        else if (slope > tanf(-0.125f*M_PI))
+            c = '-';
+        else if (slope > tanf(-0.375*M_PI))
+            c = '/';
     }
 
     for (int i = 0; i <= steps; i++) {
@@ -184,9 +192,9 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1) {
             }
         };
 
-        buffer_proj(p, '.');
-        if (WIDTH > 250)
-            buffer_proj((screen_vtx_t){p.x+1, p.y, p.ooz, p.cam_space}, '.');
+        buffer_proj(p, c);
+        // if (WIDTH > 250)
+            // buffer_proj((screen_vtx_t){p.x+1, p.y, p.ooz, p.cam_space}, c);
     }
 }
 
@@ -204,7 +212,7 @@ static inline float snap_to_zero(float w) {
     return (fabsf(w) < EPS) ? 0 : w;
 }
 
-void outline_block(camera_t *cam, veci_t block) {
+void outline_block(camera_t *cam, veci_t block, char c) {
 
     screen_vtx_t screen_vtxs[8];
     for (int v = 0; v < 8; v++) {
@@ -219,20 +227,20 @@ void outline_block(camera_t *cam, veci_t block) {
     }
 
     // front face
-    draw_line(screen_vtxs[0], screen_vtxs[1]);
-    draw_line(screen_vtxs[1], screen_vtxs[2]);
-    draw_line(screen_vtxs[2], screen_vtxs[3]);
-    draw_line(screen_vtxs[3], screen_vtxs[0]);
+    draw_line(screen_vtxs[0], screen_vtxs[1], c);
+    draw_line(screen_vtxs[1], screen_vtxs[2], c);
+    draw_line(screen_vtxs[2], screen_vtxs[3], c);
+    draw_line(screen_vtxs[3], screen_vtxs[0], c);
     // back face
-    draw_line(screen_vtxs[4], screen_vtxs[5]);
-    draw_line(screen_vtxs[5], screen_vtxs[6]);
-    draw_line(screen_vtxs[6], screen_vtxs[7]);
-    draw_line(screen_vtxs[7], screen_vtxs[4]);
+    draw_line(screen_vtxs[4], screen_vtxs[5], c);
+    draw_line(screen_vtxs[5], screen_vtxs[6], c);
+    draw_line(screen_vtxs[6], screen_vtxs[7], c);
+    draw_line(screen_vtxs[7], screen_vtxs[4], c);
     // connecting edges
-    draw_line(screen_vtxs[0], screen_vtxs[4]);
-    draw_line(screen_vtxs[1], screen_vtxs[5]);
-    draw_line(screen_vtxs[2], screen_vtxs[6]);
-    draw_line(screen_vtxs[3], screen_vtxs[7]);
+    draw_line(screen_vtxs[0], screen_vtxs[4], c);
+    draw_line(screen_vtxs[1], screen_vtxs[5], c);
+    draw_line(screen_vtxs[2], screen_vtxs[6], c);
+    draw_line(screen_vtxs[3], screen_vtxs[7], c);
 }
 
 static void render_poly(screen_vtx_t p0,  screen_vtx_t p1,  screen_vtx_t p2,
@@ -313,19 +321,18 @@ static void render_block(camera_t *cam, const chunk_t *chunk, veci_t block) {
     for (int dir = 0; dir < 6; dir++) {
         veci_t adjacent = get_adjacent_block(block, dir);
         if (!is_solid_in_chunk(chunk, get_chunk_offset(adjacent)))
-            render_face(cam, block, ref_faces[dir]);
+        render_face(cam, block, ref_faces[dir]);
     }
 }
 
 static void render_chunk(camera_t *cam, const chunk_t *chunk) {
-    veci_t coord = chunk->coord;
     for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
             for (int x = 0; x < CHUNK_X; x++) {
                 if (is_solid_in_chunk(chunk, (veci_t){x, y, z})) {
-                    veci_t block = {x + coord.x*CHUNK_X,
-                                    y + coord.y*CHUNK_Y,
-                                    z + coord.z*CHUNK_Z};
+                    veci_t block = {x + chunk->coord.x*CHUNK_X,
+                                    y + chunk->coord.y*CHUNK_Y,
+                                    z + chunk->coord.z*CHUNK_Z};
                     render_block(cam, chunk, block);
                 }
             }
@@ -342,7 +349,7 @@ void render_chunks(camera_t *cam, const chunk_t chunks[], int num_chunks) {
 void highlight_selection(camera_t *cam) {
     if (cam->raycast.hit) {
         veci_t block = cam->raycast.block;
-        outline_block(cam, block);
+        outline_block(cam, block, '.');
     }
 }
 
