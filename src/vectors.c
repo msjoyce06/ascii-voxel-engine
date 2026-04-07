@@ -21,11 +21,16 @@ float v_dotf(vecf_t v1, vecf_t v2) {
     return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
 }
 
-vecf_t v_rotatef(vecf_t v, float cost, float sint, float cosp, float sinp) {
-    vecf_t rotated;
-    rotated.x = v.x*(cost) + v.z*(-sint);
-    rotated.y = v.x*(-sint*sinp) + v.y*(cosp) + v.z*(-cost*sinp);
-    rotated.z = v.x*(sint*cosp) + v.y*(sinp) + v.z*(cost*cosp);
+float v_distf(vecf_t v1, vecf_t v2) {
+    return sqrtf((v2.x - v1.x) * (v2.x - v1.x) +
+                 (v2.y - v1.y) * (v2.y - v1.y) +
+                 (v2.z - v1.z) * (v2.z - v1.z));
+}
 
-    return rotated;
+vecf_t v_rotatef(vecf_t v, float cost, float sint, float cosp, float sinp) {
+    return (vecf_t){
+        v.x*(cost) + v.z*(-sint),
+        v.x*(-sint*sinp) + v.y*(cosp) + v.z*(-cost*sinp),
+        v.x*(sint*cosp) + v.y*(sinp) + v.z*(cost*cosp)
+    };
 }

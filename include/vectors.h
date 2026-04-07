@@ -20,6 +20,7 @@ vecf_t v_addf(vecf_t v1, vecf_t v2);
 vecf_t v_subf(vecf_t v1, vecf_t v2);
 
 float v_dotf(vecf_t v1, vecf_t v2);
+float v_distf(vecf_t v1, vecf_t v2);
 
 vecf_t v_rotatef(vecf_t v, float cost, float sint, float cosp, float sinp);
 

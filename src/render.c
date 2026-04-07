@@ -172,14 +172,14 @@ static void draw_line(screen_vtx_t s0, screen_vtx_t s1, char c) {
     float slope = (dx != 0) ? dy/dx : INFINITY;
     if (c == '_') {
         float a = tanf(22.5f * M_PI / 180.0f);
-        float b = tanf(66.5f * M_PI / 180.0f);
+        float b = tanf(67.5f * M_PI / 180.0f);
         if (slope > b || slope < -b)
             c = '|';
         else if (slope > a)
             c = '\\';
         else if (slope > -a)
             c = '-';
-        else if (slope > -b)
+        else
             c = '/';
     }
 
@@ -218,6 +218,8 @@ static inline float snap_to_zero(float w) {
 }
 
 void outline_block(camera_t *cam, veci_t block, char c) {
+    if (v_distf(vf(block), cam->pos) > 17)
+        return;
 
     screen_vtx_t screen_vtxs[8];
     for (int v = 0; v < 8; v++) {
@@ -326,7 +328,7 @@ static void render_block(camera_t *cam, const chunk_t *chunk, veci_t block) {
     for (int dir = 0; dir < 6; dir++) {
         veci_t adjacent = get_adjacent_block(block, dir);
         if (!is_solid_in_chunk(chunk, get_chunk_offset(adjacent)))
-        render_face(cam, block, ref_faces[dir]);
+            render_face(cam, block, ref_faces[dir]);
     }
 }
 
@@ -339,6 +341,7 @@ static void render_chunk(camera_t *cam, const chunk_t *chunk) {
                                     y + chunk->coord.y*CHUNK_Y,
                                     z + chunk->coord.z*CHUNK_Z};
                     render_block(cam, chunk, block);
+                    // outline_block(cam, block, '_');
                 }
             }
         }
